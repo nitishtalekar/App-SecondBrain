@@ -2159,6 +2159,244 @@
      "weight": 1.5
     }
    ]
+  },
+  {
+   "id": "food-recipes",
+   "name": "Recipes",
+   "parent": "food",
+   "color": "#C2693F",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "recipe",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "ingredients",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "tablespoon",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "teaspoon",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "preheat",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "simmer",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "bake at",
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "id": "food-recs",
+   "name": "Recs",
+   "parent": "food",
+   "color": "#C2693F",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "restaurant",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "cafe",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "brunch",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "best place to eat",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "menu",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "reservation",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "takeout",
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "id": "travel-places",
+   "name": "Places",
+   "parent": "travel",
+   "color": "#4F86A0",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "things to do",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "itinerary",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "visit",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "hostel",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "hotel",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "airbnb",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "flight",
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "id": "books-to-read",
+   "name": "To read",
+   "parent": "books",
+   "color": "#B08A3E",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "to read list",
+     "weight": 5
+    },
+    {
+     "type": "keyword",
+     "value": "reading list",
+     "weight": 5
+    },
+    {
+     "type": "keyword",
+     "value": "book recommendation",
+     "weight": 5
+    },
+    {
+     "type": "keyword",
+     "value": "want to read",
+     "weight": 5
+    }
+   ]
+  },
+  {
+   "id": "ent-watch",
+   "name": "Movies & TV",
+   "parent": "entertainment",
+   "color": "#8A6BA8",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "movie",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "film",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "series",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "netflix",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "trailer",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "season",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "imdb",
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "id": "ent-music",
+   "name": "Music",
+   "parent": "entertainment",
+   "color": "#8A6BA8",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "album",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "playlist",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "spotify",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "song",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "band",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "concert",
+     "weight": 4
+    }
+   ]
   }
  ]
 }

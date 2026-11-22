@@ -96,6 +96,13 @@ class ItemRepository @Inject constructor(
         dao.update(current.copy(categoryId = categoryId, categoryLocked = true, updatedAt = System.currentTimeMillis()))
     }
 
+    suspend fun setTags(id: Long, tags: List<String>) {
+        val current = dao.get(id) ?: return
+        val clean = tags.map(::normalizeTag).filter { it.isNotEmpty() }.distinct()
+        val next = current.copy(tags = clean.joinToString(","), updatedAt = System.currentTimeMillis())
+        dao.update(next.copy(searchText = next.buildSearchText()))
+    }
+
     suspend fun unlockCategory(id: Long) {
         val current = dao.get(id) ?: return
         val unlocked = current.copy(categoryLocked = false)

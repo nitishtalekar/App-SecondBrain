@@ -72,6 +72,12 @@ interface CategoryDao {
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("UPDATE categories SET parentId = :newParent WHERE parentId = :oldParent")
+    suspend fun reparentChildren(oldParent: String, newParent: String?)
+
+    @Query("SELECT parentId FROM categories WHERE id = :id")
+    suspend fun parentOf(id: String): String?
+
     @Query("UPDATE categories SET name = :name WHERE id = :id")
     suspend fun rename(id: String, name: String)
 }

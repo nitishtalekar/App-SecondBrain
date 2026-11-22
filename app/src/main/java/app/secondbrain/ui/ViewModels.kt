@@ -11,6 +11,7 @@ import app.secondbrain.data.ItemRepository
 import app.secondbrain.data.SettingsRepository
 import app.secondbrain.data.ThemeMode
 import app.secondbrain.data.Suggestion
+import app.secondbrain.data.recursiveCounts
 import app.secondbrain.data.db.CategoryEntity
 import app.secondbrain.data.db.ItemEntity
 import app.secondbrain.ingest.ImageStore
@@ -41,6 +42,8 @@ data class AppUiState(
 ) {
     val inboxCount: Int get() = counts[null] ?: 0
     fun categoryName(id: String?): String? = categories.firstOrNull { it.id == id }?.name
+    /** Items in each folder including everything under its subfolders. */
+    val totals: Map<String, Int> by lazy(LazyThreadSafetyMode.NONE) { categories.recursiveCounts(counts) }
 }
 
 /** Activity-scoped: the data every top-level screen shares, plus capture. */
@@ -83,9 +86,9 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun addCategory(name: String) {
+    fun addCategory(name: String, parentId: String? = null) {
         if (name.isBlank()) return
-        viewModelScope.launch { categories.create(name); items.reclassifyAutoSorted() }
+        viewModelScope.launch { categories.create(name, parentId); items.reclassifyAutoSorted() }
     }
 
     fun renameCategory(id: String, name: String) {
@@ -169,6 +172,7 @@ class DetailViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
 
     fun setCategory(categoryId: String?) = viewModelScope.launch { items.setCategory(id, categoryId) }
+    fun setTags(tags: List<String>) = viewModelScope.launch { items.setTags(id, tags) }
     fun autoSort() = viewModelScope.launch { items.unlockCategory(id) }
     fun retry() = viewModelScope.launch { items.retry(id) }
     fun save(title: String?, body: String, url: String?) = viewModelScope.launch { items.updateContent(id, title, body, url) }

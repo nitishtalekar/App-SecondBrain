@@ -44,15 +44,29 @@ class Classifier(private val config: CategoryConfig) {
         val scores = config.categories.mapNotNull { category -> score(category, evidence) }
             .sortedByDescending { it.score }
 
-        val best = scores.firstOrNull() ?: return Classification(null, 0.0, emptyList())
-        val second = scores.getOrNull(1)?.score ?: 0.0
+        var best = scores.firstOrNull() ?: return Classification(null, 0.0, emptyList())
+
+        // A more specific folder wins over its ancestors when it matched reasonably well.
+        val parentOf = config.categories.associate { it.id to it.parent }
+        fun ancestors(id: String): Set<String> {
+            val out = LinkedHashSet<String>()
+            var cur = parentOf[id]
+            while (cur != null && out.add(cur)) cur = parentOf[cur]
+            return out
+        }
+        scores.filter { best.categoryId in ancestors(it.categoryId) && it.score >= best.score * SPECIFIC_FRACTION }
+            .maxByOrNull { it.score }
+            ?.let { best = it }
+
+        val related = ancestors(best.categoryId) + config.categories.filter { best.categoryId in ancestors(it.id) }.map { it.id }
+        val second = scores.firstOrNull { it.categoryId != best.categoryId && it.categoryId !in related }?.score ?: 0.0
         val bestDef = config.categories.first { it.id == best.categoryId }
         val minScore = bestDef.minScore ?: config.minScore
 
         val margin = (best.score - second) / best.score
         val confidence = best.score / (best.score + 3.0) * (0.5 + 0.5 * margin)
         val accepted = best.score >= minScore && confidence >= config.confidenceThreshold
-        return Classification(if (accepted) best.categoryId else null, confidence, scores)
+        return Classification(if (accepted) best.categoryId else null, confidence, listOf(best) + scores.filter { it !== best })
     }
 
     private class Evidence(
@@ -150,6 +164,7 @@ class Classifier(private val config: CategoryConfig) {
     private fun repeatBoost(count: Int): Double = 1.0 + 0.25 * (min(count, 5) - 1)
 
     companion object {
+        private const val SPECIFIC_FRACTION = 0.5
         private val KEYWORD_FIELDS = listOf(Field.TEXT, Field.URL, Field.META, Field.OCR, Field.LABELS)
 
         private val FIELD_WEIGHT = mapOf(

@@ -1,6 +1,5 @@
 package app.secondbrain.ui.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,17 +7,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
@@ -31,175 +27,143 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.saveable.rememberSaveable
+import app.secondbrain.data.children
 import app.secondbrain.data.db.ItemEntity
+import app.secondbrain.data.pathName
 import app.secondbrain.ui.AppUiState
 import app.secondbrain.ui.SearchViewModel
-import app.secondbrain.ui.components.CategoryDot
 import app.secondbrain.ui.components.CategoryLabel
 import app.secondbrain.ui.components.EmptyState
+import app.secondbrain.ui.components.FolderEntry
 import app.secondbrain.ui.components.ItemList
-import app.secondbrain.ui.components.RowDivider
+import app.secondbrain.ui.components.NewFolderTile
 import app.secondbrain.ui.components.ScreenTitle
+import app.secondbrain.ui.components.folderRows
 import app.secondbrain.ui.theme.Spacing
 import app.secondbrain.ui.theme.parseHexColor
-import androidx.hilt.navigation.compose.hiltViewModel
 
-/** Maps an item to the label shown beside it. Inbox (and pending) items map to null. */
+/** Maps an item to the label shown beside it (the full folder path). Inbox and pending items map to null. */
 @Composable
 fun rememberLabeler(state: AppUiState): (ItemEntity) -> CategoryLabel? {
     val byId = remember(state.categories) {
-        state.categories.associate { it.id to CategoryLabel(it.name, parseHexColor(it.color)) }
+        state.categories.associate { it.id to CategoryLabel(state.categories.pathName(it.id) ?: it.name, parseHexColor(it.color)) }
     }
     return remember(byId) { { item -> item.categoryId?.let(byId::get) } }
 }
 
+/** The landing screen: the brain, sorted into folders. Recent items are one tap away, not in your face. */
 @Composable
-fun RecentScreen(
+fun HomeScreen(
     state: AppUiState,
-    onOpen: (Long) -> Unit,
-    onOpenInbox: () -> Unit,
+    onOpenFolder: (String?) -> Unit,
+    onOpenRecent: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenSettings: () -> Unit,
-) {
-    val labeler = rememberLabeler(state)
-    Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Recent") {
-            IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
-        }
-        when {
-            !state.loaded -> Unit
-            state.items.isEmpty() -> EmptyState(
-                "Nothing here yet",
-                "Tap + to save a thought, a link or a photo. It sorts itself.",
-            )
-            else -> ItemList(
-                items = state.items,
-                labelFor = labeler,
-                onOpen = onOpen,
-                header = if (state.inboxCount > 0) {
-                    { item(key = "inbox-banner") { InboxBanner(state.inboxCount, onOpenInbox) } }
-                } else null,
-            )
-        }
-    }
-}
-
-@Composable
-private fun InboxBanner(count: Int, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.gutter, vertical = Spacing.xs)
-            .clickable(onClick = onClick)
-            .heightIn(min = 48.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = spacedBy(Spacing.s),
-    ) {
-        CategoryDot(null)
-        Text(
-            if (count == 1) "1 item in Inbox needs a look" else "$count items in Inbox need a look",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f),
-        )
-        Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = MaterialTheme.colorScheme.primary)
-    }
-}
-
-@Composable
-fun LibraryScreen(
-    state: AppUiState,
-    onOpenCollection: (String?) -> Unit,
-    onAddCategory: (String) -> Unit,
+    onAddFolder: (String) -> Unit,
 ) {
     var adding by rememberSaveable { mutableStateOf(false) }
+    val top = state.categories.children(null)
+
     Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Library")
+        Row(
+            Modifier.fillMaxWidth().padding(start = Spacing.gutter, end = Spacing.s, top = Spacing.m, bottom = Spacing.s),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Brain",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.semantics { heading() },
+                )
+                if (state.loaded) {
+                    val total = state.items.size
+                    Text(
+                        if (total == 1) "1 thing kept" else "$total things kept",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            IconButton(onClick = onOpenRecent) { Icon(Icons.Rounded.History, contentDescription = "Recent") }
+            IconButton(onClick = onOpenSearch) { Icon(Icons.Rounded.Search, contentDescription = "Search") }
+            IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
+        }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-            LazyColumn(Modifier.widthIn(max = Spacing.contentMaxWidth).fillMaxSize(), contentPadding = PaddingValues(bottom = 96.dp)) {
-                item(key = "inbox") {
-                    CollectionRow("Inbox", null, state.inboxCount, onClick = { onOpenCollection(null) })
-                    RowDivider()
-                }
-                items(state.categories.size, key = { state.categories[it].id }) { index ->
-                    val category = state.categories[index]
-                    CollectionRow(category.name, parseHexColor(category.color), state.counts[category.id] ?: 0) {
-                        onOpenCollection(category.id)
+            LazyColumn(
+                Modifier.widthIn(max = Spacing.contentMaxWidth).fillMaxSize(),
+                contentPadding = PaddingValues(top = Spacing.s, bottom = 112.dp),
+            ) {
+                val folders = buildList {
+                    if (state.inboxCount > 0) {
+                        add(FolderEntry("inbox", "Inbox", null, state.inboxCount, emphasised = true) { onOpenFolder(null) })
                     }
-                    RowDivider()
-                }
-                item(key = "add") {
-                    TextButton(
-                        onClick = { adding = true },
-                        modifier = Modifier.padding(horizontal = Spacing.s, vertical = Spacing.s),
-                    ) {
-                        Icon(Icons.Rounded.Add, null)
-                        Text("New category", Modifier.padding(start = Spacing.s))
+                    top.forEach { c ->
+                        add(FolderEntry(c.id, c.name, parseHexColor(c.color), state.totals[c.id] ?: 0) { onOpenFolder(c.id) })
                     }
                 }
+                folderRows(folders) { m -> NewFolderTile("New folder", { adding = true }, m) }
             }
         }
     }
     if (adding) {
-        NameDialog(
-            title = "New category",
-            confirm = "Create",
-            initial = "",
-            onDismiss = { adding = false },
-            onConfirm = { onAddCategory(it); adding = false },
-        )
+        NameDialog("New folder", "Create", "", onDismiss = { adding = false }) { onAddFolder(it); adding = false }
+    }
+}
+
+/** Newest first. Deliberately off the front page. */
+@Composable
+fun RecentScreen(state: AppUiState, onBack: () -> Unit, onOpen: (Long) -> Unit) {
+    val labeler = rememberLabeler(state)
+    Column(Modifier.fillMaxSize()) {
+        ScreenTitle("Recent", onBack = onBack)
+        when {
+            !state.loaded -> Unit
+            state.items.isEmpty() -> EmptyState("Nothing here yet", "Tap + to save a thought, a link or a photo. It sorts itself.")
+            else -> ItemList(items = state.items, labelFor = labeler, onOpen = onOpen)
+        }
     }
 }
 
 @Composable
-private fun CollectionRow(name: String, color: androidx.compose.ui.graphics.Color?, count: Int, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .heightIn(min = 60.dp)
-            .padding(horizontal = Spacing.gutter, vertical = Spacing.s)
-            .semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = spacedBy(14.dp),
-    ) {
-        CategoryDot(color, size = 10)
-        Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        Text(count.toString(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-fun SearchScreen(state: AppUiState, onOpen: (Long) -> Unit, viewModel: SearchViewModel = hiltViewModel()) {
+fun SearchScreen(
+    state: AppUiState,
+    onBack: () -> Unit,
+    onOpen: (Long) -> Unit,
+    initialQuery: String? = null,
+    viewModel: SearchViewModel = hiltViewModel(),
+) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
     val labeler = rememberLabeler(state)
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(initialQuery) {
+        if (initialQuery != null) viewModel.query.value = initialQuery else focus.requestFocus()
+    }
 
     Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Search")
+        ScreenTitle("Search", onBack = onBack)
         TextField(
             value = query,
             onValueChange = { viewModel.query.value = it },
-            placeholder = { Text("Notes, links, text in photos") },
+            placeholder = { Text("Notes, links, tags, text in photos") },
             leadingIcon = { Icon(Icons.Rounded.Search, null) },
             trailingIcon = {
                 if (query.isNotEmpty()) IconButton(onClick = { viewModel.query.value = "" }) {
@@ -213,8 +177,8 @@ fun SearchScreen(state: AppUiState, onOpen: (Long) -> Unit, viewModel: SearchVie
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -223,7 +187,7 @@ fun SearchScreen(state: AppUiState, onOpen: (Long) -> Unit, viewModel: SearchVie
         )
         Box(Modifier.weight(1f)) {
             when {
-                query.isBlank() -> EmptyState("Find anything", "Searches titles, notes, links, and the text read from your photos.")
+                query.isBlank() -> EmptyState("Find anything", "Searches titles, notes, links, tags, and the text read from your photos.")
                 results.isEmpty() -> EmptyState("No matches", "Nothing saved contains “${query.trim()}”.")
                 else -> ItemList(
                     items = results,

@@ -40,6 +40,12 @@ fun ItemEntity.displaySubtitle(): String? = when (type) {
 fun ItemEntity.labelList(): List<String> =
     imageLabels?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
+fun ItemEntity.tagList(): List<String> =
+    tags.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+fun normalizeTag(raw: String): String =
+    raw.trim().trimStart('#').lowercase().replace(Regex("[,\\s]+"), "-").trim('-')
+
 fun ItemEntity.buildSearchText(): String = listOfNotNull(
-    title, body, url, ocrText, imageLabels, linkTitle, linkDescription, linkSiteName, linkKeywords,
+    title, body, url, ocrText, imageLabels, linkTitle, linkDescription, linkSiteName, linkKeywords, tags.replace(',', ' '),
 ).joinToString("\n").lowercase()

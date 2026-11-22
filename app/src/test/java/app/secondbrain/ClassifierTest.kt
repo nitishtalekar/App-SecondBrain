@@ -30,7 +30,7 @@ class ClassifierTest {
 
     @Test fun `recipe text goes to food`() {
         val r = classify(ClassifyInput(text = "Try this pasta carbonara recipe, ingredients are eggs and pecorino"))
-        assertEquals("food", r.categoryId)
+        assertEquals("food-recipes", r.categoryId)
         assertTrue(r.reasons.isNotEmpty())
     }
 
@@ -55,7 +55,7 @@ class ClassifierTest {
 
     @Test fun `page metadata is used for links`() {
         val r = classify(ClassifyInput(url = "https://example.com/x", pageTitle = "10 things to do in Lisbon", pageDescription = "A travel itinerary for a long weekend"))
-        assertEquals("travel", r.categoryId)
+        assertEquals("travel-places", r.categoryId)
     }
 
     @Test fun `image labels and ocr drive image categorisation`() {
@@ -104,7 +104,7 @@ class ClassifierTest {
         val r = classify(ClassifyInput(text = "Movie night idea: watch the trailer for that new film"))
         assertNotNull(r.ranked.firstOrNull())
         assertEquals(r.categoryId, r.ranked.first().categoryId)
-        assertTrue(r.ranked.zipWithNext().all { (a, b) -> a.score >= b.score })
+        assertTrue(r.ranked.drop(1).zipWithNext().all { (a, b) -> a.score >= b.score })
     }
 
     @Test fun `config round trips through json`() {

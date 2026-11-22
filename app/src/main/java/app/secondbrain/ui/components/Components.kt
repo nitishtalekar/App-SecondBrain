@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement.spacedBy
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +42,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,7 +50,6 @@ import app.secondbrain.data.db.ItemType
 import app.secondbrain.data.db.ProcessingStatus
 import app.secondbrain.data.displaySubtitle
 import app.secondbrain.data.displayTitle
-import app.secondbrain.ui.theme.Newsreader
 import app.secondbrain.ui.theme.Spacing
 import coil.compose.AsyncImage
 import java.io.File
@@ -55,11 +67,22 @@ fun CategoryDot(color: Color?, modifier: Modifier = Modifier, size: Int = 8) {
 }
 
 @Composable
-fun ScreenTitle(text: String, modifier: Modifier = Modifier, trailing: @Composable () -> Unit = {}) {
+fun ScreenTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {},
+) {
     Row(
-        modifier.fillMaxWidth().padding(start = Spacing.gutter, end = Spacing.s, top = Spacing.m, bottom = Spacing.s),
+        modifier.fillMaxWidth().padding(
+            start = if (onBack != null) Spacing.xs else Spacing.gutter,
+            end = Spacing.s, top = Spacing.m, bottom = Spacing.s,
+        ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
+        }
         Text(
             text,
             style = MaterialTheme.typography.headlineMedium,
@@ -76,7 +99,7 @@ fun EmptyState(title: String, hint: String, modifier: Modifier = Modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = spacedBy(Spacing.s)) {
             Text(
                 title,
-                style = MaterialTheme.typography.titleLarge.copy(fontFamily = Newsreader, fontStyle = FontStyle.Italic),
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
@@ -205,5 +228,87 @@ fun relativeTime(timestamp: Long, now: Long = System.currentTimeMillis()): Strin
         }
         diff < 48 * 60 * minute -> "Yesterday"
         else -> DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(timestamp))
+    }
+}
+
+/** A folder on the home shelf: coloured folder glyph, name, count. Nothing else. */
+@Composable
+fun FolderTile(
+    name: String,
+    color: Color?,
+    count: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    emphasised: Boolean = false,
+) {
+    val colors = MaterialTheme.colorScheme
+    val tint = color ?: colors.primary
+    Column(
+        modifier
+            .heightIn(min = 112.dp)
+            .clip(MaterialTheme.shapes.large)
+            .background(if (emphasised) colors.primaryContainer else colors.surfaceContainer)
+            .clickable(onClick = onClick)
+            .padding(Spacing.m)
+            .semantics(mergeDescendants = true) { contentDescription = "$name, $count items" },
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Icon(Icons.Rounded.Folder, contentDescription = null, tint = tint, modifier = Modifier.size(34.dp))
+        Spacer(Modifier.height(Spacing.s))
+        Column {
+            Text(
+                name,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (emphasised) colors.onPrimaryContainer else colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                count.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (emphasised) colors.onPrimaryContainer else colors.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+fun NewFolderTile(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier
+            .heightIn(min = 112.dp)
+            .clip(MaterialTheme.shapes.large)
+            .border(1.dp, colors.outlineVariant, MaterialTheme.shapes.large)
+            .clickable(onClick = onClick)
+            .padding(Spacing.m),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(Icons.Rounded.Add, contentDescription = null, tint = colors.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+    }
+}
+
+/** One folder shown in a [FolderRows] grid. */
+data class FolderEntry(val key: String, val name: String, val color: Color?, val count: Int, val emphasised: Boolean = false, val onClick: () -> Unit)
+
+/** Lays folders out two to a row inside an existing LazyColumn so it can share a scroll with items. */
+fun LazyListScope.folderRows(folders: List<FolderEntry>, trailing: (@Composable (Modifier) -> Unit)? = null) {
+    // A null entry is the slot for [trailing].
+    val slots: List<FolderEntry?> = if (trailing != null) folders + null else folders
+    val rows = slots.chunked(2)
+    items(rows.size, key = { "folder-row-$it" }) { row ->
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = 6.dp),
+            horizontalArrangement = spacedBy(12.dp),
+        ) {
+            val pair = rows[row]
+            pair.forEach { f ->
+                if (f != null) FolderTile(f.name, f.color, f.count, f.onClick, Modifier.weight(1f), f.emphasised)
+                else trailing?.invoke(Modifier.weight(1f))
+            }
+            if (pair.size == 1) Spacer(Modifier.weight(1f))
+        }
     }
 }

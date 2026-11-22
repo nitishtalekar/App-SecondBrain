@@ -35,6 +35,8 @@ data class CategoryDef(
     val id: String,
     val name: String,
     val color: String = "#8C8272",
+    /** Id of the parent folder, or null for a top-level folder. */
+    val parent: String? = null,
     /** Minimum raw score this category needs to win. Falls back to [CategoryConfig.minScore]. */
     val minScore: Double? = null,
     val rules: List<Rule> = emptyList(),

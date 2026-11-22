@@ -8,11 +8,11 @@
 
 **Primary user.** One person, capturing one-handed, often interrupted. (Assumption.)
 
-**Success.** Capture takes under five seconds and never requires a decision. Retrieval works through Recent, Library or Search. Any automatic assignment can be reviewed and changed in two taps, and a manual choice is permanent.
+**Success.** Capture takes under five seconds and never requires a decision. Retrieval works through the folder shelf (nested folders, multiple tags), Search, or the tucked-away Recent list. Any automatic assignment can be reviewed and changed in two taps, and a manual choice is permanent.
 
 **Tone.** Calm, private, unhurried. A well-kept notebook, not a dashboard. Copy is short, plain, first-person-friendly ("Saved", "Couldn't tell where this belongs").
 
-**Anti-references.** Productivity-app gamification, tag soup, folders you must choose from, bright multi-colour category chips, and AI sparkle iconography (the app is deliberately not AI).
+**Anti-references.** Productivity-app gamification, tag soup, a wordy home screen, bright multi-colour category chips, and AI sparkle iconography (the app is deliberately not AI).
 
 **Principles**
 1. Saving never waits on analysis, and nothing is lost if analysis fails.

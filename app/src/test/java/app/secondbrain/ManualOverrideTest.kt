@@ -22,7 +22,7 @@ class ManualOverrideTest {
 
     @Test fun `automatic sort assigns a category to an unlocked item`() {
         val sorted = item(locked = false, category = null).let { it.withClassification(classifier.classify(it.classifyInput())) }
-        assertEquals("food", sorted.categoryId)
+        assertEquals("food-recipes", sorted.categoryId)
         assertTrue(sorted.suggestions().isNotEmpty())
     }
 
@@ -42,6 +42,6 @@ class ManualOverrideTest {
     @Test fun `suggestions still refresh for locked items so alternatives stay available`() {
         val chosen = item(locked = true, category = "travel")
         val after = chosen.withClassification(classifier.classify(chosen.classifyInput()))
-        assertEquals("food", after.suggestions().first().categoryId)
+        assertEquals("food-recipes", after.suggestions().first().categoryId)
     }
 }

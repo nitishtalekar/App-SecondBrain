@@ -4,7 +4,7 @@
     <!-- a quiet spiral: a single stroke folding inward -->
     <path
         android:pathData="M54,30 C67,30 78,41 78,54 C78,67 67,78 54,78 C43,78 34,69 34,58 C34,49 41,42 50,42 C57,42 63,48 63,55 C63,60 59,64 54,64"
-        android:strokeColor="#F7F4EE"
+        android:strokeColor="#F3F6F5"
         android:strokeWidth="5"
         android:strokeLineCap="round"
         android:fillColor="#00000000" />

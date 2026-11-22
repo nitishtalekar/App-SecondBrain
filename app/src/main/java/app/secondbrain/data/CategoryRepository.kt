@@ -44,6 +44,7 @@ class CategoryRepository @Inject constructor(
                 name = def.name,
                 color = def.color,
                 sortOrder = existing[def.id]?.sortOrder ?: (start + index),
+                parentId = def.parent,
                 minScore = def.minScore,
                 rulesJson = CategoryConfig.json.encodeToString(rulesSerializer, def.rules),
             )
@@ -58,19 +59,23 @@ class CategoryRepository @Inject constructor(
 
     suspend fun classifier(): Classifier = Classifier(exportConfig())
 
-    suspend fun create(name: String): String = withContext(Dispatchers.IO) {
+    suspend fun create(name: String, parentId: String? = null): String = withContext(Dispatchers.IO) {
         val existing = dao.getAll().map { it.id }.toSet()
         val base = name.trim().lowercase(Locale.ROOT).replace(Regex("[^a-z0-9]+"), "-").trim('-').ifEmpty { "category" }
         var id = base
         var n = 2
         while (id in existing) id = "$base-${n++}"
-        dao.upsert(CategoryEntity(id, name.trim(), PALETTE[existing.size % PALETTE.size], dao.maxOrder() + 1))
+        val color = parentId?.let { pid -> dao.getAll().firstOrNull { it.id == pid }?.color }
+            ?: PALETTE[existing.size % PALETTE.size]
+        dao.upsert(CategoryEntity(id, name.trim(), color, dao.maxOrder() + 1, parentId))
         id
     }
 
     suspend fun rename(id: String, name: String) = withContext(Dispatchers.IO) { dao.rename(id, name.trim()) }
 
     suspend fun delete(id: String) = withContext(Dispatchers.IO) {
+        // Subfolders move up a level; items filed directly here go back to be sorted.
+        dao.reparentChildren(id, dao.parentOf(id))
         itemDao.releaseCategory(id)
         dao.delete(id)
     }
@@ -85,6 +90,7 @@ internal fun CategoryEntity.toDef() = CategoryDef(
     id = id,
     name = name,
     color = color,
+    parent = parentId,
     minScore = minScore,
     rules = runCatching { CategoryConfig.json.decodeFromString(rulesSerializer, rulesJson) }.getOrDefault(emptyList()),
 )

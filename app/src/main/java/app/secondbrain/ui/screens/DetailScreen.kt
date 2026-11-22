@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
@@ -31,6 +33,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -65,6 +68,10 @@ import app.secondbrain.data.db.ItemEntity
 import app.secondbrain.data.db.ItemType
 import app.secondbrain.data.db.ProcessingStatus
 import app.secondbrain.data.displayTitle
+import app.secondbrain.data.flattened
+import app.secondbrain.data.pathName
+import app.secondbrain.data.tagList
+import app.secondbrain.data.normalizeTag
 import app.secondbrain.data.labelList
 import app.secondbrain.ui.AppUiState
 import app.secondbrain.ui.DetailViewModel
@@ -78,7 +85,12 @@ import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailScreen(state: AppUiState, onBack: () -> Unit, viewModel: DetailViewModel = hiltViewModel()) {
+fun DetailScreen(
+    state: AppUiState,
+    onBack: () -> Unit,
+    onOpenTag: (String) -> Unit,
+    viewModel: DetailViewModel = hiltViewModel(),
+) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(ui.deleted) { if (ui.deleted) onBack() }
     val item = ui.item ?: return
@@ -137,6 +149,7 @@ fun DetailScreen(state: AppUiState, onBack: () -> Unit, viewModel: DetailViewMod
                         onAuto = viewModel::autoSort,
                         onMore = { picking = true },
                     )
+                    TagSection(item, onChange = viewModel::setTags, onOpenTag = onOpenTag)
                     ExtractedText(item)
                     Text(
                         "Saved " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(item.createdAt)),
@@ -281,7 +294,7 @@ private fun CategorySection(
         ) {
             CategoryDot(current?.let { parseHexColor(it.color) }, size = 10)
             Text(
-                if (pending) "Sorting…" else current?.name ?: "Inbox",
+                if (pending) "Sorting…" else categories.pathName(current?.id) ?: "Inbox",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -358,26 +371,69 @@ fun CategoryPickerSheet(
             item {
                 PickerRow("Inbox", null, selected = currentId == null) { onPick(null) }
             }
-            items(categories, key = { it.id }) { category ->
-                PickerRow(category.name, parseHexColor(category.color), selected = category.id == currentId) { onPick(category.id) }
+            items(categories.flattened(), key = { it.category.id }) { node ->
+                PickerRow(
+                    node.category.name, parseHexColor(node.category.color),
+                    selected = node.category.id == currentId, depth = node.depth,
+                ) { onPick(node.category.id) }
             }
         }
     }
 }
 
 @Composable
-private fun PickerRow(name: String, color: Color?, selected: Boolean, onClick: () -> Unit) {
+private fun PickerRow(name: String, color: Color?, selected: Boolean, depth: Int = 0, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .heightIn(min = 52.dp)
-            .padding(horizontal = Spacing.gutter),
+            .padding(start = Spacing.gutter + (depth * 20).dp, end = Spacing.gutter),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = spacedBy(14.dp),
     ) {
         CategoryDot(color, size = 10)
         Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
         if (selected) Icon(Icons.Rounded.Check, contentDescription = "Current", tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagSection(item: ItemEntity, onChange: (List<String>) -> Unit, onOpenTag: (String) -> Unit) {
+    val tags = item.tagList()
+    var adding by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = spacedBy(Spacing.s)) {
+        RowDivider(Modifier)
+        Text("Tags", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
+        FlowRow(horizontalArrangement = spacedBy(Spacing.s), verticalArrangement = spacedBy(Spacing.xs)) {
+            tags.forEach { tag ->
+                InputChip(
+                    selected = false,
+                    onClick = { onOpenTag(tag) },
+                    label = { Text("#$tag") },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Remove tag $tag",
+                            modifier = Modifier.size(18.dp).clickable { onChange(tags - tag) },
+                        )
+                    },
+                )
+            }
+            AssistChip(
+                onClick = { adding = true },
+                label = { Text(if (tags.isEmpty()) "Add a tag" else "Add") },
+                leadingIcon = { Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)) },
+            )
+        }
+    }
+    if (adding) {
+        NameDialog("Add tag", "Add", "", onDismiss = { adding = false }) { raw ->
+            // Commas or spaces separate several tags typed at once.
+            val added = raw.split(',', ' ').map(::normalizeTag).filter { it.isNotEmpty() }
+            onChange((tags + added).distinct())
+            adding = false
+        }
     }
 }

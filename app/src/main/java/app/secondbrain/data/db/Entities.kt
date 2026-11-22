@@ -15,6 +15,8 @@ data class CategoryEntity(
     val name: String,
     val color: String,
     val sortOrder: Int,
+    /** Parent folder id; null for top-level folders. */
+    val parentId: String? = null,
     val minScore: Double? = null,
     /** JSON-encoded List<Rule>. Kept opaque so rule shapes can evolve without migrations. */
     val rulesJson: String = "[]",
@@ -47,6 +49,8 @@ data class ItemEntity(
     /** JSON-encoded List<Suggestion>, best first. */
     val suggestionsJson: String = "[]",
     val reasons: String = "",
+    /** Comma separated, lowercase, user-added tags. */
+    @ColumnInfo(defaultValue = "") val tags: String = "",
     val status: ProcessingStatus = ProcessingStatus.PENDING,
     val createdAt: Long,
     val updatedAt: Long,
