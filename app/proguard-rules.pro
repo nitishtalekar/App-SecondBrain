@@ -1,0 +1,2 @@
+-keep class app.secondbrain.classify.** { *; }
+-keepclassmembers class * { @kotlinx.serialization.Serializable *; }

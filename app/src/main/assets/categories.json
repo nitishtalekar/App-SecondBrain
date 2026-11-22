@@ -1,0 +1,2164 @@
+{
+ "version": 1,
+ "minScore": 2,
+ "confidenceThreshold": 0.3,
+ "categories": [
+  {
+   "id": "books",
+   "name": "Books",
+   "color": "#B08A3E",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "isbn",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "book recommendation",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "reading list",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "to read list",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "novel",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "paperback",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "hardcover",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "kindle",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "audiobook",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "bestseller",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "memoir",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "bibliography",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "literature",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "book",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "author",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "chapter",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "fiction",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "nonfiction",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "non fiction",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "publisher",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "reading",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "poet",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "poetry",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "biography",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "trilogy",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "read",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "pages",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "edition",
+     "weight": 1
+    },
+    {
+     "type": "domain",
+     "value": "goodreads.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "bookshop.org",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "librarything.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "storygraph.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "audible.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "openlibrary.org",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "amazon.com",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Book",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Publication",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Bookcase",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Library",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Paper product",
+     "weight": 1.5
+    },
+    {
+     "type": "label",
+     "value": "Novel",
+     "weight": 1.5
+    }
+   ]
+  },
+  {
+   "id": "food",
+   "name": "Food",
+   "color": "#C2693F",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "recipe",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "ingredients",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "restaurant",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "cuisine",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "tablespoon",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "teaspoon",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "tbsp",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "tsp",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "preheat",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "simmer",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "cook",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "cooking",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "bake",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "baking",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "dinner",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "lunch",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "breakfast",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "brunch",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "dessert",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "delicious",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "vegan",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "vegetarian",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "menu",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "chef",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "foodie",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "cafe",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "bakery",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "pasta",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "pizza",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "sushi",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "burger",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "salad",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "soup",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "cake",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "sauce",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "noodle",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "curry",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "snack",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "marinate",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "coffee",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "tea",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "taste",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "flavor",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "flavour",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "eat",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "eating",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "meal",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "bowl",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "grill",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "oven",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "fry",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "spicy",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "sweet",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "bread",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "cheese",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "chocolate",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "egg",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "eggs",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "rice",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "chicken",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "beef",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "tofu",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "grocery",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "groceries",
+     "weight": 1.5
+    },
+    {
+     "type": "domain",
+     "value": "allrecipes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "seriouseats.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "bonappetit.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "epicurious.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "cooking.nytimes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "foodnetwork.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "simplyrecipes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "tasty.co",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "delish.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "budgetbytes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "minimalistbaker.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "yelp.com",
+     "weight": 2
+    },
+    {
+     "type": "domain",
+     "value": "opentable.com",
+     "weight": 2
+    },
+    {
+     "type": "domain",
+     "value": "ubereats.com",
+     "weight": 2
+    },
+    {
+     "type": "domain",
+     "value": "doordash.com",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Food",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Dish",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Cuisine",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Recipe",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Ingredient",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Fast food",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Baked goods",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Dessert",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Meal",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Cooking",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Staple food",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Comfort food",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Snack",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Produce",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Drink",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Cake",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Pizza",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Salad",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Fruit",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Vegetable",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Coffee",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Cup",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Bread",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Tableware",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Plate",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Bowl",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Beverage",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Breakfast",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Lunch",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Dinner",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Seafood",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Meat",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Drinkware",
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "id": "travel",
+   "name": "Travel",
+   "color": "#4F86A0",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "itinerary",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "passport",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "destination",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "things to do",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "vacation",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "backpacking",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "layover",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "sightseeing",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "hostel",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "airbnb",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "getaway",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "travel",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "trip",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "flight",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "hotel",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "resort",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "tour",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "airport",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "beach",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "hike",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "hiking",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "trek",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "trekking",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "visa",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "road trip",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "cruise",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "island",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "visit",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "campsite",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "camping",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "landmark",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "souvenir",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "roadtrip",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "city",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "mountain",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "museum",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "temple",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "sunset",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "train",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "abroad",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "weekend",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "booking",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "guide",
+     "weight": 1.5
+    },
+    {
+     "type": "domain",
+     "value": "tripadvisor.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "booking.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "airbnb.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "expedia.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "lonelyplanet.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "kayak.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "skyscanner.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "hostelworld.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "atlasobscura.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "roughguides.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "travelandleisure.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "cntraveler.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "maps.google.com",
+     "weight": 2
+    },
+    {
+     "type": "domain",
+     "value": "goo.gl",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Landmark",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Tourism",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Vacation",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Monument",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Temple",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Palace",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Castle",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Skyline",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Cityscape",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Tourist attraction",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Resort",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Coast",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Holiday",
+     "weight": 3.5
+    },
+    {
+     "type": "label",
+     "value": "Beach",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Mountain",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Sea",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Lake",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Island",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Bridge",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Tower",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Church",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Ruins",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Waterfall",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Cliff",
+     "weight": 2
+    },
+    {
+     "type": "label",
+     "value": "Tree",
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "id": "entertainment",
+   "name": "Entertainment",
+   "color": "#8A6BA8",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "movie",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "film",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "trailer",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "episode",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "documentary",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "anime",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "podcast",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "soundtrack",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "netflix",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "must watch",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "binge",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "tv show",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "album",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "concert",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "playlist",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "series",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "season",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "watch",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "watching",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "song",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "music",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "band",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "singer",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "actor",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "actress",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "director",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "cinema",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "theatre",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "theater",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "game",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "gaming",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "streaming",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "comedy",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "thriller",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "sitcom",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "stand up",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "standup",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "livestream",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "show",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "listen",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "playing",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "review",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "rating",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "cast",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "plot",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "ending",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "spoiler",
+     "weight": 1.5
+    },
+    {
+     "type": "domain",
+     "value": "netflix.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "imdb.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "spotify.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "letterboxd.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "rottentomatoes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "twitch.tv",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "hulu.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "disneyplus.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "primevideo.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "soundcloud.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "bandcamp.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "steampowered.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "music.apple.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "vimeo.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "youtube.com",
+     "weight": 3
+    },
+    {
+     "type": "domain",
+     "value": "youtu.be",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Poster",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Concert",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Video game",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Musician",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Singer",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Performance",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Stage",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Theatre",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Cinema",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Entertainment",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Film",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Album cover",
+     "weight": 3
+    },
+    {
+     "type": "label",
+     "value": "Musical instrument",
+     "weight": 1.5
+    },
+    {
+     "type": "label",
+     "value": "Guitar",
+     "weight": 1.5
+    },
+    {
+     "type": "label",
+     "value": "Microphone",
+     "weight": 1.5
+    },
+    {
+     "type": "label",
+     "value": "Headphones",
+     "weight": 1.5
+    },
+    {
+     "type": "label",
+     "value": "Television",
+     "weight": 1.5
+    }
+   ]
+  },
+  {
+   "id": "ideas",
+   "name": "Ideas",
+   "color": "#4E9A8B",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "business idea",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "app idea",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "side project",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "wouldnt it be",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "what if",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "startup idea",
+     "weight": 4
+    },
+    {
+     "type": "keyword",
+     "value": "idea",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "ideas",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "brainstorm",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "startup",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "invent",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "prototype",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "hypothesis",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "concept",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "experiment",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "app that",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "a tool that",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "a service that",
+     "weight": 3
+    },
+    {
+     "type": "keyword",
+     "value": "i could",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "maybe i",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "imagine",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "someday",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "what about",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "thinking about",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "build a",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "make a",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "create a",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "design a",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "vision",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "thought",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "should",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "could",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "maybe",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "might",
+     "weight": 1
+    },
+    {
+     "type": "keyword",
+     "value": "explore",
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "id": "quotes",
+   "name": "Quotes",
+   "color": "#B85C7A",
+   "rules": [
+    {
+     "type": "regex",
+     "value": "^\\s*[\"“«‘].{12,}[\"”»’]\\s*([—–-]+\\s*\\S.*)?$",
+     "weight": 5,
+     "field": "text"
+    },
+    {
+     "type": "regex",
+     "value": "[—–]\\s*[A-Z][\\w.'’-]+(\\s+[A-Z][\\w.'’-]+){0,3}\\s*$",
+     "weight": 3,
+     "field": "text"
+    },
+    {
+     "type": "regex",
+     "value": "^\\s*[\"“].{12,}",
+     "weight": 2,
+     "field": "ocr"
+    },
+    {
+     "type": "keyword",
+     "value": "quote",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "quotes",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "once said",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "proverb",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "aphorism",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "wikiquote",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "famous quote",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "quote of the day",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "wisdom",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "saying",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "famously",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "philosopher",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "stoic",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "motto",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "maxim",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "attributed to",
+     "weight": 2
+    },
+    {
+     "type": "keyword",
+     "value": "wrote",
+     "weight": 2
+    },
+    {
+     "type": "domain",
+     "value": "wikiquote.org",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "brainyquote.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "quotes.net",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "azquotes.com",
+     "weight": 4
+    },
+    {
+     "type": "domain",
+     "value": "quotery.com",
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "id": "notes",
+   "name": "Notes",
+   "color": "#8C8272",
+   "rules": [
+    {
+     "type": "keyword",
+     "value": "remember to",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "dont forget",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "reminder",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "todo",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "to do",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "follow up",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "appointment",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "remind me",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "note to self",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "errand",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "errands",
+     "weight": 3.5
+    },
+    {
+     "type": "keyword",
+     "value": "remember",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "meeting",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "task",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "deadline",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "schedule",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "call",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "email",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "pick up",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "need to",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "have to",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "must",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "pay",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "book a",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "renew",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "submit",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "invoice",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "tomorrow",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "tonight",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "next week",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "monday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "tuesday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "wednesday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "thursday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "friday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "saturday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "sunday",
+     "weight": 2.5
+    },
+    {
+     "type": "keyword",
+     "value": "note",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "notes",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "list",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "check",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "ask",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "buy",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "bring",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "send",
+     "weight": 1.5
+    },
+    {
+     "type": "keyword",
+     "value": "remind",
+     "weight": 1.5
+    }
+   ]
+  }
+ ]
+}
