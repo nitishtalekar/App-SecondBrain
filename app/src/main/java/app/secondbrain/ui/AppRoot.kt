@@ -1,137 +1,218 @@
 package app.secondbrain.ui
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-import app.secondbrain.ui.screens.CaptureDraft
-import app.secondbrain.ui.screens.CaptureSheet
-import app.secondbrain.ui.screens.CollectionScreen
+import app.secondbrain.R
+import app.secondbrain.ui.components.dotGrid
+import app.secondbrain.ui.screens.AddScreen
+import app.secondbrain.ui.screens.BrainScreen
 import app.secondbrain.ui.screens.DetailScreen
-import app.secondbrain.ui.screens.HomeScreen
-import app.secondbrain.ui.screens.RecentScreen
 import app.secondbrain.ui.screens.SearchScreen
 import app.secondbrain.ui.screens.SettingsScreen
+import app.secondbrain.ui.screens.TagRuleScreen
+import app.secondbrain.ui.screens.TagRulesScreen
+import kotlin.reflect.KClass
+import kotlinx.coroutines.flow.merge
+
+private class Tab(
+    val route: Any,
+    val type: KClass<*>,
+    val label: String,
+    @DrawableRes val icon: Int,
+    @DrawableRes val selectedIcon: Int,
+)
+
+private val tabs = listOf(
+    Tab(AddRoute, AddRoute::class, "Add", R.drawable.ic_tab_add, R.drawable.ic_tab_add_filled),
+    Tab(SearchRoute, SearchRoute::class, "Library", R.drawable.ic_tab_search, R.drawable.ic_tab_search_filled),
+    Tab(BrainRoute, BrainRoute::class, "Brain", R.drawable.ic_tab_brain, R.drawable.ic_tab_brain_filled),
+)
 
 @Composable
-fun AppRoot(viewModel: AppViewModel) {
+private fun TabIcon(tab: Tab, selected: Boolean) {
+    // The label beside it names the tab, so the icon stays silent.
+    Icon(painterResource(if (selected) tab.selectedIcon else tab.icon), contentDescription = null, Modifier.size(24.dp))
+}
+
+@Composable
+fun AppRoot(viewModel: AppViewModel, addViewModel: AddViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Held here, outside the navigation graph, so each tab keeps its state while you are elsewhere.
+    val searchViewModel: SearchViewModel = hiltViewModel()
+    val brainViewModel: BrainViewModel = hiltViewModel()
     val navController = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
-    var capturing by rememberSaveable { mutableStateOf(false) }
-    val draft = remember { CaptureDraft() }
-
-    LaunchedEffect(Unit) {
-        viewModel.messages.collect {
-            snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(it)
-        }
-    }
 
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
-    // Capture is available wherever you browse; not while reading one item, searching, or in settings.
-    val showFab = listOf(HomeRoute::class, RecentRoute::class, CollectionRoute::class)
-        .any { destination?.hasRoute(it) == true }
+    val current = tabs.firstOrNull { destination?.hasRoute(it.type) == true }
 
-    // No bottom bar: the folder shelf is home, and everything else is one tap away from it.
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            if (showFab) {
-                FloatingActionButton(
-                    onClick = { capturing = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
-                ) { Icon(Icons.Rounded.Add, contentDescription = "Add something") }
-            }
-        },
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = HomeRoute,
-            modifier = Modifier.padding(padding),
-            enterTransition = { fadeIn(tween(220)) },
-            exitTransition = { fadeOut(tween(120)) },
-            popEnterTransition = { fadeIn(tween(220)) },
-            popExitTransition = { fadeOut(tween(120)) },
-        ) {
-            val open: (Long) -> Unit = { navController.navigate(DetailRoute(it)) }
-            val back: () -> Unit = { navController.popBackStack() }
-            composable<HomeRoute> {
-                HomeScreen(
-                    state = state,
-                    onOpenFolder = { navController.navigate(CollectionRoute(it)) },
-                    onOpenRecent = { navController.navigate(RecentRoute) },
-                    onOpenSearch = { navController.navigate(SearchRoute()) },
-                    onOpenSettings = { navController.navigate(SettingsRoute) },
-                    onAddFolder = { viewModel.addCategory(it) },
-                )
-            }
-            composable<RecentRoute> { RecentScreen(state = state, onBack = back, onOpen = open) }
-            composable<SearchRoute> { backStackEntry ->
-                SearchScreen(
-                    state = state,
-                    onBack = back,
-                    onOpen = open,
-                    initialQuery = backStackEntry.toRoute<SearchRoute>().query,
-                )
-            }
-            composable<CollectionRoute> {
-                CollectionScreen(
-                    state = state,
-                    onBack = back,
-                    onOpen = open,
-                    onOpenFolder = { navController.navigate(CollectionRoute(it)) },
-                    onAddSubfolder = { name, parent -> viewModel.addCategory(name, parent) },
-                    onRename = viewModel::renameCategory,
-                    onDelete = viewModel::deleteCategory,
-                )
-            }
-            composable<DetailRoute> {
-                DetailScreen(
-                    state = state,
-                    onBack = back,
-                    onOpenTag = { navController.navigate(SearchRoute(it)) },
-                )
-            }
-            composable<SettingsRoute> { SettingsScreen(state, viewModel, onBack = back) }
+    fun switchTo(route: Any) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
         }
     }
 
-    if (capturing) {
-        CaptureSheet(
-            draft = draft,
-            newCaptureTarget = viewModel::newCaptureTarget,
-            onSave = viewModel::save,
-            onDismiss = { capturing = false },
-        )
+    LaunchedEffect(Unit) {
+        merge(viewModel.messages, addViewModel.messages).collect { message ->
+            snackbar.currentSnackbarData?.dismiss()
+            val saved = message.startsWith("Saved") && message.endsWith("brain")
+            val result = snackbar.showSnackbar(message, actionLabel = "View".takeIf { saved }, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) {
+                brainViewModel.select(null)
+                switchTo(BrainRoute)
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        addViewModel.shared.collect {
+            // Drop anything stacked on the tabs, then bring Add forward.
+            val ready = navController.currentDestination != null
+            if (ready && !navController.popBackStack(AddRoute, inclusive = false)) switchTo(AddRoute)
+        }
+    }
+
+    // Tabs sit along the bottom on phones and down the side on wider screens.
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+
+    Scaffold(
+        modifier = Modifier.dotGrid(
+            ground = MaterialTheme.colorScheme.background,
+            dot = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.09f),
+        ),
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            if (current != null && !wide) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = tab === current,
+                            onClick = { if (tab !== current) switchTo(tab.route) },
+                            icon = { TabIcon(tab, selected = tab === current) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                }
+            }
+        },
+    ) { padding ->
+        Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
+            if (current != null && wide) {
+                NavigationRail(Modifier.fillMaxHeight(), containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    tabs.forEach { tab ->
+                        NavigationRailItem(
+                            selected = tab === current,
+                            onClick = { if (tab !== current) switchTo(tab.route) },
+                            icon = { TabIcon(tab, selected = tab === current) },
+                            label = { Text(tab.label) },
+                        )
+                    }
+                }
+            }
+            NavHost(
+                navController = navController,
+                startDestination = AddRoute,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                enterTransition = { fadeIn(tween(220)) },
+                exitTransition = { fadeOut(tween(120)) },
+                popEnterTransition = { fadeIn(tween(220)) },
+                popExitTransition = { fadeOut(tween(120)) },
+            ) {
+                val open: (Long) -> Unit = { id -> navController.navigate(DetailRoute(id)) { launchSingleTop = true } }
+                val back: () -> Unit = { navController.popBackStack() }
+                val searchTag: (String) -> Unit = { tag ->
+                    searchViewModel.showTag(tag)
+                    switchTo(SearchRoute)
+                }
+                composable<AddRoute> { AddScreen(addViewModel) }
+                composable<SearchRoute> {
+                    SearchScreen(
+                        viewModel = searchViewModel,
+                        onOpen = open,
+                        onComplete = viewModel::setCompleted,
+                        onOpenSettings = { navController.navigate(SettingsRoute) { launchSingleTop = true } },
+                    )
+                }
+                composable<BrainRoute> {
+                    BrainScreen(
+                        viewModel = brainViewModel,
+                        onOpen = open,
+                        onComplete = viewModel::setCompleted,
+                        onSearchTag = searchTag,
+                        onAdd = { switchTo(AddRoute) },
+                    )
+                }
+                composable<DetailRoute> {
+                    DetailScreen(
+                        onBack = back,
+                        onOpenTag = { tag ->
+                            // Leave the item first so it isn't restored on top of its tab later.
+                            navController.popBackStack()
+                            searchTag(tag)
+                        },
+                        onOpenItem = { id ->
+                            navController.popBackStack()
+                            open(id)
+                        },
+                    )
+                }
+                composable<SettingsRoute> {
+                    SettingsScreen(
+                        state, viewModel,
+                        onBack = back,
+                        onOpenTagRules = { navController.navigate(TagRulesRoute) { launchSingleTop = true } },
+                    )
+                }
+                composable<TagRulesRoute> {
+                    TagRulesScreen(
+                        onBack = back,
+                        onOpen = { name -> navController.navigate(TagRuleRoute(name)) { launchSingleTop = true } },
+                        onExport = viewModel::exportRules,
+                        onImport = viewModel::importRules,
+                    )
+                }
+                composable<TagRuleRoute> { TagRuleScreen(onBack = back, onApply = viewModel::retagAll) }
+            }
+        }
     }
 }

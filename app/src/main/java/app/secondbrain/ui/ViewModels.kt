@@ -1,162 +1,165 @@
 package app.secondbrain.ui
 
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import app.secondbrain.classify.CategoryConfig
-import app.secondbrain.data.CategoryRepository
+import app.secondbrain.brain.BrainMap
+import app.secondbrain.brain.Clusterer
+import app.secondbrain.data.Entry
 import app.secondbrain.data.ItemRepository
 import app.secondbrain.data.SettingsRepository
+import app.secondbrain.data.TagRulesRepository
+import app.secondbrain.data.Accent
 import app.secondbrain.data.ThemeMode
-import app.secondbrain.data.Suggestion
-import app.secondbrain.data.recursiveCounts
-import app.secondbrain.data.db.CategoryEntity
-import app.secondbrain.data.db.ItemEntity
-import app.secondbrain.ingest.ImageStore
-import app.secondbrain.ingest.suggestions
+import app.secondbrain.search.SearchDoc
+import app.secondbrain.search.SearchEngine
+import app.secondbrain.search.SearchHit
+import app.secondbrain.search.SearchParams
+import app.secondbrain.search.StatusFilter
+import app.secondbrain.search.TagCount
+import app.secondbrain.tagging.ItemAction
+import app.secondbrain.tagging.ItemType
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val KEEP_ALIVE = 5_000L
+
 data class AppUiState(
     val loaded: Boolean = false,
-    val items: List<ItemEntity> = emptyList(),
-    val categories: List<CategoryEntity> = emptyList(),
-    val counts: Map<String?, Int> = emptyMap(),
+    val entries: List<Entry> = emptyList(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-) {
-    val inboxCount: Int get() = counts[null] ?: 0
-    fun categoryName(id: String?): String? = categories.firstOrNull { it.id == id }?.name
-    /** Items in each folder including everything under its subfolders. */
-    val totals: Map<String, Int> by lazy(LazyThreadSafetyMode.NONE) { categories.recursiveCounts(counts) }
-}
+    val accent: Accent = Accent.Default,
+)
 
-/** Activity-scoped: the data every top-level screen shares, plus capture. */
+/** Activity-scoped: what several screens share, plus settings. */
 @HiltViewModel
 class AppViewModel @Inject constructor(
     private val items: ItemRepository,
-    private val categories: CategoryRepository,
+    private val rules: TagRulesRepository,
     private val settings: SettingsRepository,
-    private val imageStore: ImageStore,
 ) : ViewModel() {
 
-    fun newCaptureTarget() = imageStore.newCaptureTarget()
-
-    val uiState: StateFlow<AppUiState> = combine(
-        items.observeAll(),
-        categories.categories,
-        items.observeCounts(),
-        settings.themeMode,
-    ) { all, cats, counts, theme ->
-        AppUiState(
-            loaded = true,
-            items = all,
-            categories = cats,
-            counts = counts.associate { it.categoryId to it.count },
-            themeMode = theme,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppUiState())
+    val uiState: StateFlow<AppUiState> = combine(items.entries, settings.themeMode, settings.accent) { entries, theme, accent ->
+        AppUiState(loaded = true, entries = entries, themeMode = theme, accent = accent)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), AppUiState())
 
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
-    fun save(text: String, image: Uri?) {
-        viewModelScope.launch {
-            val id = runCatching { items.saveText(text, image) }
-            when {
-                id.isFailure -> _messages.send("Couldn't save that. Try again.")
-                id.getOrNull() == null -> Unit
-                else -> _messages.send("Saved")
-            }
-        }
-    }
-
-    fun addCategory(name: String, parentId: String? = null) {
-        if (name.isBlank()) return
-        viewModelScope.launch { categories.create(name, parentId); items.reclassifyAutoSorted() }
-    }
-
-    fun renameCategory(id: String, name: String) {
-        if (name.isBlank()) return
-        viewModelScope.launch { categories.rename(id, name) }
-    }
-
-    fun deleteCategory(id: String) {
-        viewModelScope.launch {
-            categories.delete(id)
-            items.reclassifyAutoSorted()
-        }
+    fun setCompleted(id: Long, completed: Boolean) {
+        viewModelScope.launch { items.setCompleted(id, completed) }
     }
 
     fun setTheme(mode: ThemeMode) {
         viewModelScope.launch { settings.setThemeMode(mode) }
     }
 
-    fun resort() {
+    fun setAccent(accent: Accent) {
+        viewModelScope.launch { settings.setAccent(accent) }
+    }
+
+    fun retagAll() {
         viewModelScope.launch {
-            items.reclassifyAutoSorted()
-            _messages.send("Re-sorted")
+            val changed = items.retagAll()
+            _messages.send(
+                when (changed) {
+                    0 -> "Tags are already up to date"
+                    1 -> "Added tags to 1 item"
+                    else -> "Added tags to $changed items"
+                },
+            )
         }
     }
 
-    suspend fun exportRules(): String = categories.exportConfig().encode()
+    suspend fun exportRules(): String = rules.export()
 
     fun importRules(text: String) {
         viewModelScope.launch {
-            val result = runCatching { categories.applyConfig(CategoryConfig.parse(text)) }
-            if (result.isSuccess) {
-                items.reclassifyAutoSorted()
-                _messages.send("Categories imported")
+            if (runCatching { rules.import(text) }.isSuccess) {
+                items.retagAll()
+                _messages.send("Tag rules imported")
             } else {
-                _messages.send("That file isn't a valid categories file")
+                _messages.send("That file isn't a valid tag rules file")
             }
         }
     }
 }
 
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class SearchViewModel @Inject constructor(private val items: ItemRepository) : ViewModel() {
-    val query = MutableStateFlow("")
+data class SearchUiState(
+    val loaded: Boolean = false,
+    val params: SearchParams = SearchParams(),
+    val results: List<SearchHit> = emptyList(),
+    /** Tags that complete the word being typed. */
+    val suggestions: List<TagCount> = emptyList(),
+    val total: Int = 0,
+)
 
-    val results: StateFlow<List<ItemEntity>> = query
-        .debounce(150)
-        .flatMapLatest { if (it.isBlank()) emptyFlow() else items.search(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+/** Activity-scoped, so a search survives switching tabs. */
+@HiltViewModel
+class SearchViewModel @Inject constructor(items: ItemRepository) : ViewModel() {
+
+    private val params = MutableStateFlow(SearchParams())
+
+    /** The field's text, kept apart from the results so typing never waits on a search. */
+    val query: StateFlow<String> = params.map { it.query }.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    private val docs = items.entries.map { entries -> entries.map(::SearchDoc) }
+
+    val uiState: StateFlow<SearchUiState> = combine(docs, params) { all, current ->
+        // The library lists nothing until asked; browsing everything is the Brain's job.
+        val hits = if (current.isEmpty) emptyList() else SearchEngine.search(all, current)
+        SearchUiState(true, current, hits, SearchEngine.suggestTags(all, current), all.size)
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), SearchUiState())
+
+    fun setQuery(query: String) = params.update { it.copy(query = query) }
+    fun toggleStatus(status: StatusFilter) = params.update { it.copy(status = status.takeIf { s -> s != it.status }) }
+    fun toggleType(type: ItemType) = params.update { it.copy(type = type.takeIf { t -> t != it.type }) }
+    fun toggleTag(tag: String) = params.update { it.copy(tags = if (tag in it.tags) it.tags - tag else it.tags + tag) }
+    /** Swap the word being typed for the suggested [tag]. */
+    fun pickSuggestion(tag: String) = params.update {
+        it.copy(query = it.query.dropLast(SearchEngine.typedWord(it.query).length), tags = it.tags + tag)
+    }
+
+    fun clear() { params.value = SearchParams() }
+
+    /** Start over, showing everything with [tag]. */
+    fun showTag(tag: String) { params.value = SearchParams(tags = setOf(tag)) }
 }
 
 @HiltViewModel
-class CollectionViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    repository: ItemRepository,
-) : ViewModel() {
-    val categoryId: String? = savedStateHandle.toRoute<CollectionRoute>().categoryId
+class BrainViewModel @Inject constructor(items: ItemRepository) : ViewModel() {
 
-    val items: StateFlow<List<ItemEntity>?> = (
-        if (categoryId == null) repository.observeInbox() else repository.observeCategory(categoryId)
-        ).map<List<ItemEntity>, List<ItemEntity>?> { it }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /** Null until the first load, so an empty brain isn't flashed while reading the database. */
+    val map: StateFlow<BrainMap?> = items.entries.map { Clusterer.build(it) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), null)
+
+    private val _selected = MutableStateFlow<String?>(null)
+    val selected = _selected.asStateFlow()
+
+    fun select(tag: String?) { _selected.value = tag }
 }
 
 data class DetailUiState(
-    val item: ItemEntity? = null,
-    val suggestions: List<Suggestion> = emptyList(),
-    val deleted: Boolean = false,
+    val entry: Entry? = null,
+    /** Other posts from the same capture. */
+    val related: List<Entry> = emptyList(),
+    val gone: Boolean = false,
 )
 
 @HiltViewModel
@@ -165,16 +168,22 @@ class DetailViewModel @Inject constructor(
     private val items: ItemRepository,
 ) : ViewModel() {
     private val id = savedStateHandle.toRoute<DetailRoute>().id
-    private val deleted = MutableStateFlow(false)
 
-    val uiState: StateFlow<DetailUiState> = combine(items.observe(id), deleted) { item, gone ->
-        DetailUiState(item, item?.suggestions().orEmpty(), gone || item == null)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetailUiState())
+    val uiState: StateFlow<DetailUiState> = items.entries.map { all ->
+        val entry = all.firstOrNull { it.id == id }
+        val group = entry?.item?.groupId
+        DetailUiState(
+            entry = entry,
+            related = if (group == null) emptyList() else all.filter { it.item.groupId == group && it.id != id },
+            gone = entry == null,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), DetailUiState())
 
-    fun setCategory(categoryId: String?) = viewModelScope.launch { items.setCategory(id, categoryId) }
-    fun setTags(tags: List<String>) = viewModelScope.launch { items.setTags(id, tags) }
-    fun autoSort() = viewModelScope.launch { items.unlockCategory(id) }
-    fun retry() = viewModelScope.launch { items.retry(id) }
-    fun save(title: String?, body: String, url: String?) = viewModelScope.launch { items.updateContent(id, title, body, url) }
-    fun delete() = viewModelScope.launch { deleted.value = true; items.delete(id) }
+    fun setCompleted(completed: Boolean) = viewModelScope.launch { items.setCompleted(id, completed) }
+    fun setAction(action: ItemAction?) = viewModelScope.launch { items.setAction(id, action) }
+    fun addTags(names: List<String>) = viewModelScope.launch { items.addTags(id, names) }
+    fun removeTag(name: String) = viewModelScope.launch { items.removeTag(id, name) }
+    fun retry() = viewModelScope.launch { items.analyse(id) }
+    fun save(title: String?, body: String, url: String?) = viewModelScope.launch { items.edit(id, title, body, url) }
+    fun delete() = viewModelScope.launch { items.delete(id) }
 }

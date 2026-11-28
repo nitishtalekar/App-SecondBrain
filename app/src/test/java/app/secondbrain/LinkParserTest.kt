@@ -1,13 +1,8 @@
 package app.secondbrain
 
 import app.secondbrain.ingest.LinkParser
-import app.secondbrain.ui.screens.snippetFor
-import app.secondbrain.data.db.ItemEntity
-import app.secondbrain.data.db.ItemType
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LinkParserTest {
@@ -38,15 +33,5 @@ class LinkParserTest {
 
     @Test fun `plain text has no url`() {
         assertNull(LinkParser.parse("buy milk").url)
-    }
-
-    @Test fun `search snippet finds text inside ocr`() {
-        val item = ItemEntity(
-            type = ItemType.IMAGE, body = "", ocrText = "Welcome to the Blue Door Cafe, open daily until late",
-            createdAt = 0, updatedAt = 0,
-        )
-        val snippet = snippetFor(item, "cafe")
-        assertNotNull(snippet)
-        assertTrue(snippet!!.contains("Cafe"))
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.secondbrain.data.ThemeMode
+import app.secondbrain.ui.AddViewModel
 import app.secondbrain.ui.AppRoot
 import app.secondbrain.ui.AppViewModel
 import app.secondbrain.ui.theme.SecondBrainTheme
@@ -24,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: AppViewModel by viewModels()
+    private val addViewModel: AddViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,13 +39,11 @@ class MainActivity : ComponentActivity() {
             }
             DisposableEffect(dark) {
                 val transparent = Color.TRANSPARENT
-                enableEdgeToEdge(
-                    statusBarStyle = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent),
-                    navigationBarStyle = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent),
-                )
+                val style = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            SecondBrainTheme(state.themeMode) { AppRoot(viewModel) }
+            SecondBrainTheme(state.themeMode, state.accent) { AppRoot(viewModel, addViewModel) }
         }
     }
 
@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         handleShare(intent)
     }
 
-    /** Anything shared to the app from another app is saved immediately, with no extra step. */
+    /** Anything shared from another app lands on the Add tab, tagged and waiting to be confirmed. */
     private fun handleShare(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
         val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
         } else {
             @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM)
         }
-        viewModel.save(text, image)
+        addViewModel.share(text, image)
         intent.action = null
     }
 }

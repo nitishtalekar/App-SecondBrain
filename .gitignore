@@ -9,3 +9,4 @@
 .cxx/
 *.apk
 .claude/settings.local.json
+.kotlin/

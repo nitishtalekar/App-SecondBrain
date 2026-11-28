@@ -4,8 +4,10 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import app.secondbrain.data.Accent
 import app.secondbrain.data.ThemeMode
 
 object Spacing {
@@ -27,16 +29,18 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun SecondBrainTheme(mode: ThemeMode, content: @Composable () -> Unit) {
+fun SecondBrainTheme(mode: ThemeMode, accent: Accent, content: @Composable () -> Unit) {
     val dark = when (mode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    MaterialTheme(
-        colorScheme = if (dark) DarkColors else LightColors,
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalClusterColors provides clusterColors(dark)) {
+        MaterialTheme(
+            colorScheme = appColorScheme(dark, accent),
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

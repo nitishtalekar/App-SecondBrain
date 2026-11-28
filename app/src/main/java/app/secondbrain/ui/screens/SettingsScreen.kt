@@ -1,19 +1,27 @@
 package app.secondbrain.ui.screens
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,58 +31,31 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import app.secondbrain.data.Accent
 import app.secondbrain.data.ThemeMode
 import app.secondbrain.ui.AppUiState
 import app.secondbrain.ui.AppViewModel
 import app.secondbrain.ui.theme.Spacing
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(state: AppUiState, viewModel: AppViewModel, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val text = viewModel.exportRules()
-            withContext(Dispatchers.IO) {
-                context.contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(text) }
-            }
-        }
-    }
-    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val text = withContext(Dispatchers.IO) {
-                runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } }.getOrNull()
-            }
-            viewModel.importRules(text.orEmpty())
-        }
-    }
-
+fun SettingsScreen(state: AppUiState, viewModel: AppViewModel, onBack: () -> Unit, onOpenTagRules: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = { Text("Settings", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() }) },
-            navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
-            },
-            windowInsets = WindowInsets(0.dp),
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-        )
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.s), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
+            Text("Settings", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+        }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(
                 Modifier
@@ -97,31 +78,58 @@ fun SettingsScreen(state: AppUiState, viewModel: AppViewModel, onBack: () -> Uni
                         }
                     }
                 }
-                Section("Categories") {
-                    Text(
-                        "Categories and their matching rules live in a JSON file. Export it, edit keywords, domains and weights in any text editor, then import it back. Imports update categories with the same id and add new ones.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    OutlinedButton(onClick = { export.launch("secondbrain-categories.json") }, Modifier.fillMaxWidth()) { Text("Export categories") }
-                    OutlinedButton(onClick = { import.launch(arrayOf("application/json", "text/plain", "*/*")) }, Modifier.fillMaxWidth()) { Text("Import categories") }
-                    OutlinedButton(onClick = viewModel::resort, Modifier.fillMaxWidth()) { Text("Re-sort automatic items") }
-                    Text(
-                        "Items you moved yourself are never touched.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Section("Accent color") {
+                    AccentGrid(selected = state.accent, onSelect = viewModel::setAccent)
+                    Hint("${state.accent.label}. Marks things still waiting on you. Everything else stays black and white.")
+                }
+                Section("Tags") {
+                    Hint("Rules decide which tags are added automatically.")
+                    OutlinedButton(onClick = onOpenTagRules, Modifier.fillMaxWidth()) { Text("Tag rules") }
+                    OutlinedButton(onClick = viewModel::retagAll, Modifier.fillMaxWidth()) { Text("Tag everything again") }
+                    Hint("Tagging again only adds tags. Tags you removed stay removed.")
                 }
                 Section("Privacy") {
-                    Text(
-                        "Everything stays on this device. Photos are read by on-device models for text and objects. The only network request is fetching a page's title when you save a link.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Hint("Your items are saved on this device, and photos are read by on-device models for text and objects. If Android backup is on, a copy of the app's data may go to your backup account. The app itself only goes online to fetch the details and preview images of links you add.")
                 }
             }
         }
     }
+}
+
+/** Every accent as a swatch, in the shade it takes in the current theme. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AccentGrid(selected: Accent, onSelect: (Accent) -> Unit) {
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = spacedBy(Spacing.s),
+        maxItemsInEachRow = 6,
+    ) {
+        Accent.entries.forEach { accent ->
+            val chosen = accent == selected
+            val ring = if (chosen) MaterialTheme.colorScheme.onSurface else Color.Transparent
+            Box(
+                Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .selectable(selected = chosen, role = Role.RadioButton, onClick = { onSelect(accent) })
+                    .semantics { contentDescription = accent.label }
+                    .border(2.dp, ring, CircleShape)
+                    .padding(5.dp)
+                    .background(Color(if (dark) accent.dark.color else accent.light.color), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (chosen) Icon(Icons.Rounded.Check, contentDescription = null, tint = if (dark) Color.Black else Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Hint(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

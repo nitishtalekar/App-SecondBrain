@@ -5,10 +5,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.secondbrain.data.db.AppDatabase
-import app.secondbrain.data.db.CategoryEntity
 import app.secondbrain.data.db.ItemEntity
-import app.secondbrain.data.db.ItemType
-import app.secondbrain.data.db.ProcessingStatus
+import app.secondbrain.tagging.ItemAction
+import app.secondbrain.tagging.ItemType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -27,42 +26,32 @@ class DaoTest {
 
     @After fun tearDown() = db.close()
 
-    private fun item(text: String, category: String?, status: ProcessingStatus = ProcessingStatus.DONE, at: Long = 1) = ItemEntity(
-        type = ItemType.TEXT, body = text, categoryId = category, status = status,
-        createdAt = at, updatedAt = at, searchText = text.lowercase(),
+    private fun item(text: String, at: Long = 1, image: String? = null, pending: Boolean = false, version: Int = 1) = ItemEntity(
+        type = ItemType.TEXT, body = text, imagePath = image, needsAnalysis = pending, taggerVersion = version,
+        createdAt = at, updatedAt = at,
     )
-
-    @Test fun inboxExcludesPendingAndCategorised() = runBlocking {
-        val dao = db.itemDao()
-        dao.insert(item("a", null))
-        dao.insert(item("b", "food"))
-        dao.insert(item("c", null, ProcessingStatus.PENDING))
-        assertEquals(listOf("a"), dao.observeInbox().first().map { it.body })
-        assertEquals(listOf("b"), dao.observeByCategory("food").first().map { it.body })
-        assertEquals(3, dao.observeAll().first().size)
-    }
-
-    @Test fun searchMatchesSubstringsAndEscapesWildcards() = runBlocking {
-        val dao = db.itemDao()
-        dao.insert(item("fresh croissant at the cafe", "food"))
-        dao.insert(item("100% sure", null))
-        assertEquals(1, dao.search("croissant").first().size)
-        assertEquals(1, dao.search("100!%").first().size)
-        assertEquals(0, dao.search("zzz").first().size)
-    }
-
-    @Test fun releasingACategoryReturnsItemsToTheInbox() = runBlocking {
-        val dao = db.itemDao()
-        db.categoryDao().upsert(CategoryEntity("food", "Food", "#C2693F", 0))
-        dao.insert(item("a", "food"))
-        dao.releaseCategory("food")
-        assertEquals(1, dao.observeInbox().first().size)
-    }
 
     @Test fun newestItemsComeFirst() = runBlocking {
         val dao = db.itemDao()
-        dao.insert(item("old", null, at = 1))
-        dao.insert(item("new", null, at = 2))
+        dao.insertAll(listOf(item("old", at = 1), item("new", at = 2)))
         assertEquals(listOf("new", "old"), dao.observeAll().first().map { it.body })
+    }
+
+    @Test fun actionAndCompletionRoundTrip() = runBlocking {
+        val dao = db.itemDao()
+        val id = dao.insert(item("milk").copy(action = ItemAction.BUY, completedAt = 5))
+        val saved = dao.get(id)!!
+        assertEquals(ItemAction.BUY, saved.action)
+        assertEquals(5L, saved.completedAt)
+    }
+
+    @Test fun housekeepingQueries() = runBlocking {
+        val dao = db.itemDao()
+        val ids = dao.insertAll(listOf(item("a", pending = true), item("b", version = 0), item("c", image = "/p.jpg")))
+        assertEquals(listOf("a"), dao.getNeedingAnalysis().map { it.body })
+        assertEquals(listOf(ids[1]), dao.getTaggedBefore(1))
+        assertEquals(1, dao.countImageUses("/p.jpg"))
+        dao.delete(ids[2])
+        assertEquals(0, dao.countImageUses("/p.jpg"))
     }
 }

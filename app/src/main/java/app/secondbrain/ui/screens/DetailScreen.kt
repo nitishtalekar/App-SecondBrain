@@ -1,5 +1,8 @@
 package app.secondbrain.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
@@ -7,17 +10,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -28,13 +32,15 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -42,8 +48,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,77 +58,65 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.secondbrain.data.db.CategoryEntity
-import app.secondbrain.data.db.ItemEntity
-import app.secondbrain.data.db.ItemType
-import app.secondbrain.data.db.ProcessingStatus
-import app.secondbrain.data.displayTitle
-import app.secondbrain.data.flattened
-import app.secondbrain.data.pathName
-import app.secondbrain.data.tagList
-import app.secondbrain.data.normalizeTag
+import app.secondbrain.data.Entry
 import app.secondbrain.data.labelList
-import app.secondbrain.ui.AppUiState
+import app.secondbrain.tagging.ItemType
+import app.secondbrain.tagging.TagKind
+import app.secondbrain.tagging.Text as TextTools
+import app.secondbrain.tagging.tagLabel
 import app.secondbrain.ui.DetailViewModel
-import app.secondbrain.ui.components.CategoryDot
+import app.secondbrain.ui.components.AddTagDialog
+import app.secondbrain.ui.components.SectionLabel
+import app.secondbrain.ui.components.icon
 import app.secondbrain.ui.theme.Spacing
-import app.secondbrain.ui.theme.parseHexColor
 import coil.compose.AsyncImage
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Just the thing itself. If it is waiting on the user there is one button to complete it; tags,
+ * facts, editing and deletion live under Advanced.
+ */
 @Composable
 fun DetailScreen(
-    state: AppUiState,
     onBack: () -> Unit,
     onOpenTag: (String) -> Unit,
+    onOpenItem: (Long) -> Unit,
     viewModel: DetailViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(ui.deleted) { if (ui.deleted) onBack() }
-    val item = ui.item ?: return
+    LaunchedEffect(ui.gone) { if (ui.gone) onBack() }
+    val entry = ui.entry ?: return
 
+    var advanced by rememberSaveable { mutableStateOf(false) }
     var editing by rememberSaveable { mutableStateOf(false) }
-    var confirmDelete by rememberSaveable { mutableStateOf(false) }
-    var picking by rememberSaveable { mutableStateOf(false) }
-    var title by rememberSaveable(editing) { mutableStateOf(item.title.orEmpty()) }
-    var body by rememberSaveable(editing) { mutableStateOf(item.body) }
-    var url by rememberSaveable(editing) { mutableStateOf(item.url.orEmpty()) }
+
+    if (editing) {
+        Editor(
+            entry,
+            onClose = { editing = false },
+            onSave = { title, body, url -> viewModel.save(title, body, url); editing = false },
+        )
+        return
+    }
 
     Column(Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {},
-            navigationIcon = {
-                IconButton(onClick = { if (editing) editing = false else onBack() }) {
-                    if (editing) Icon(Icons.Rounded.Close, contentDescription = "Discard changes")
-                    else Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                }
-            },
-            actions = {
-                if (editing) {
-                    IconButton(onClick = { viewModel.save(title, body, url.takeIf { item.type == ItemType.LINK }); editing = false }) {
-                        Icon(Icons.Rounded.Check, contentDescription = "Save changes")
-                    }
-                } else {
-                    IconButton(onClick = { editing = true }) { Icon(Icons.Rounded.Edit, contentDescription = "Edit") }
-                    IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete") }
-                }
-            },
-            windowInsets = WindowInsets(0.dp),
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-        )
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.s)) {
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back") }
+            Box(Modifier.weight(1f))
+            IconButton(onClick = { advanced = true }) { Icon(Icons.Rounded.Tune, contentDescription = "Advanced") }
+        }
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(
                 Modifier
                     .widthIn(max = Spacing.contentMaxWidth)
@@ -132,308 +124,290 @@ fun DetailScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = Spacing.gutter)
                     .padding(bottom = Spacing.xl),
-                verticalArrangement = spacedBy(Spacing.l),
-            ) {
-                if (editing) {
-                    EditFields(item, title, body, url, { title = it }, { body = it }, { url = it })
-                } else {
-                    Content(item)
+                verticalArrangement = spacedBy(Spacing.m),
+            ) { Content(entry) }
+        }
+        entry.item.action?.let { action ->
+            val button = Modifier
+                .widthIn(max = Spacing.contentMaxWidth)
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.gutter, vertical = 12.dp)
+                .height(52.dp)
+                .align(Alignment.CenterHorizontally)
+            if (entry.done) {
+                FilledTonalButton(onClick = { viewModel.setCompleted(false) }, modifier = button) {
+                    Text("${action.completed}. Undo")
                 }
-                if (!editing) {
-                    ProcessingNote(item, onRetry = viewModel::retry)
-                    CategorySection(
-                        item = item,
-                        categories = state.categories,
-                        suggestions = ui.suggestions.map { it.categoryId },
-                        onPick = viewModel::setCategory,
-                        onAuto = viewModel::autoSort,
-                        onMore = { picking = true },
-                    )
-                    TagSection(item, onChange = viewModel::setTags, onOpenTag = onOpenTag)
-                    ExtractedText(item)
-                    Text(
-                        "Saved " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(item.createdAt)),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            } else {
+                Button(onClick = { viewModel.setCompleted(true) }, modifier = button) {
+                    Icon(Icons.Rounded.Check, contentDescription = null)
+                    Text(action.verb, Modifier.padding(start = Spacing.s))
                 }
             }
         }
     }
 
-    if (picking) {
-        CategoryPickerSheet(
-            categories = state.categories,
-            currentId = item.categoryId,
-            onPick = { viewModel.setCategory(it); picking = false },
-            onDismiss = { picking = false },
+    if (advanced) {
+        AdvancedSheet(
+            entry = entry,
+            related = ui.related,
+            viewModel = viewModel,
+            onDismiss = { advanced = false },
+            onEdit = { advanced = false; editing = true },
+            onOpenTag = { advanced = false; onOpenTag(it) },
+            onOpenItem = { advanced = false; onOpenItem(it) },
         )
+    }
+}
+
+@Composable
+private fun Content(entry: Entry) {
+    val item = entry.item
+    val uriHandler = LocalUriHandler.current
+    if (item.type == ItemType.IMAGE && item.imagePath != null) {
+        AsyncImage(
+            model = File(item.imagePath),
+            contentDescription = entry.title,
+            contentScale = ContentScale.FillWidth,
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
+        )
+    }
+    val heading = item.title?.takeIf { it.isNotBlank() }
+        ?: if (item.type == ItemType.LINK) item.linkTitle?.takeIf { it.isNotBlank() } else null
+    if (heading != null) {
+        Text(heading, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+    }
+    if (item.body.isNotBlank()) {
+        SelectionContainer {
+            // A short single thought gets to be large.
+            val brief = item.type == ItemType.TEXT && item.body.length < 120 && '\n' !in item.body
+            val style = if (brief) MaterialTheme.typography.headlineSmall
+            else MaterialTheme.typography.bodyLarge
+            Text(item.body, style = style)
+        }
+    }
+    if (item.type == ItemType.LINK && item.url != null) {
+        // A page with no app to open it must not crash the screen.
+        OutlinedButton(onClick = { runCatching { uriHandler.openUri(item.url) } }) {
+            Icon(Icons.AutoMirrored.Rounded.OpenInNew, contentDescription = null, Modifier.size(18.dp))
+            Text(
+                "Open ${TextTools.hostOf(item.url) ?: "link"}",
+                Modifier.padding(start = Spacing.s),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun AdvancedSheet(
+    entry: Entry,
+    related: List<Entry>,
+    viewModel: DetailViewModel,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onOpenTag: (String) -> Unit,
+    onOpenItem: (Long) -> Unit,
+) {
+    val item = entry.item
+    val colors = MaterialTheme.colorScheme
+    var addingTag by rememberSaveable { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var showWhy by rememberSaveable { mutableStateOf(false) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.gutter)
+                .padding(bottom = Spacing.l)
+                .navigationBarsPadding(),
+            verticalArrangement = spacedBy(12.dp),
+        ) {
+            SectionLabel("Tags")
+            FlowRow(horizontalArrangement = spacedBy(Spacing.s)) {
+                entry.tags.forEach { tag ->
+                    SavedTagChip(
+                        name = tagLabel(tag.name),
+                        mine = tag.kind == TagKind.MINE,
+                        onOpen = { onOpenTag(tag.name) },
+                        onRemove = { viewModel.removeTag(tag.name) },
+                    )
+                }
+                AssistChip(
+                    onClick = { addingTag = true },
+                    label = { Text("Add tag") },
+                    leadingIcon = { Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)) },
+                )
+            }
+            val reasons = entry.tags.filter { it.why != null }
+            if (reasons.isNotEmpty()) {
+                TextButton(onClick = { showWhy = !showWhy }) { Text(if (showWhy) "Hide reasons" else "Why these tags?") }
+                if (showWhy) reasons.forEach { Fact(tagLabel(it.name), it.why!!) }
+            }
+
+            HorizontalDivider(color = colors.outlineVariant)
+            SectionLabel("Is it waiting on you?")
+            ActionChips(item.action) { viewModel.setAction(it) }
+
+            if (related.isNotEmpty()) {
+                HorizontalDivider(color = colors.outlineVariant)
+                SectionLabel("Saved together")
+                related.forEach { other ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onOpenItem(other.id) }.heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = spacedBy(12.dp),
+                    ) {
+                        Icon(other.item.type.icon(), contentDescription = null, tint = colors.primary)
+                        Text(other.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+
+            HorizontalDivider(color = colors.outlineVariant)
+            SectionLabel("Details")
+            Fact("Saved", DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(item.createdAt)))
+            item.completedAt?.let {
+                Fact(item.action?.completed ?: "Done", DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(it)))
+            }
+            item.url?.let { Fact("Address", it) }
+            item.linkSiteName?.takeIf { it.isNotBlank() }?.let { Fact("Site", it) }
+            item.linkDescription?.takeIf { it.isNotBlank() }?.let { Fact("About", it) }
+            item.ocrText?.takeIf { it.isNotBlank() }?.let { Fact("Text in photo", it) }
+            if (item.labelList().isNotEmpty()) Fact("Looks like", item.labelList().joinToString(", "))
+            if (item.needsAnalysis) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (item.type == ItemType.LINK) "The page hasn't loaded yet." else "The photo hasn't been fully read.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { viewModel.retry() }) { Text("Try again") }
+                }
+            }
+
+            HorizontalDivider(color = colors.outlineVariant)
+            Row(horizontalArrangement = spacedBy(Spacing.s)) {
+                OutlinedButton(onClick = onEdit, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Rounded.Edit, contentDescription = null, Modifier.size(18.dp))
+                    Text("Edit", Modifier.padding(start = Spacing.s))
+                }
+                OutlinedButton(onClick = { confirmDelete = true }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null, Modifier.size(18.dp), tint = colors.error)
+                    Text("Delete", Modifier.padding(start = Spacing.s), color = colors.error)
+                }
+            }
+        }
+    }
+    if (addingTag) {
+        AddTagDialog(onDismiss = { addingTag = false }) { viewModel.addTags(it); addingTag = false }
     }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this item?") },
-            text = { Text("It will be removed from this device, including the original photo if there is one.") },
-            confirmButton = { TextButton(onClick = { confirmDelete = false; viewModel.delete() }) { Text("Delete") } },
+            title = { Text("Delete this?") },
+            text = {
+                Text(
+                    if (item.type == ItemType.IMAGE) "The photo is removed from Second Brain. This can't be undone."
+                    else "It is removed from this device. This can't be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDismiss(); viewModel.delete() }) { Text("Delete", color = colors.error) }
+            },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
         )
     }
 }
 
+/**
+ * A tag with two jobs: the name searches for it, the cross removes it. It looks like a 32dp chip,
+ * but each job has its own 48dp target so a near miss on the cross doesn't leave the screen.
+ */
 @Composable
-private fun Content(item: ItemEntity) {
-    val uriHandler = LocalUriHandler.current
-    Column(verticalArrangement = spacedBy(Spacing.m)) {
-        if (item.type == ItemType.IMAGE && item.imagePath != null) {
-            AsyncImage(
-                model = File(item.imagePath),
-                contentDescription = item.displayTitle(),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).clip(MaterialTheme.shapes.large),
-            )
-        }
-        if (item.type == ItemType.LINK) {
-            Column(verticalArrangement = spacedBy(Spacing.s)) {
-                item.linkSiteName?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(
-                    item.linkTitle?.takeIf { it.isNotBlank() } ?: item.url.orEmpty(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.semantics { heading() },
-                )
-                item.linkDescription?.takeIf { it.isNotBlank() }?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(item.url.orEmpty(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 2)
-                OutlinedButton(onClick = { item.url?.let(uriHandler::openUri) }) {
-                    Icon(Icons.AutoMirrored.Rounded.OpenInNew, null)
-                    Text("Open link", Modifier.padding(start = Spacing.s))
-                }
+private fun SavedTagChip(name: String, mine: Boolean, onOpen: () -> Unit, onRemove: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val content = if (mine) colors.onSecondaryContainer else colors.onSurfaceVariant
+    val shape = MaterialTheme.shapes.small
+    Box {
+        Box(
+            Modifier
+                .matchParentSize()
+                .padding(vertical = 8.dp)
+                .then(
+                    if (mine) Modifier.background(colors.secondaryContainer, shape)
+                    else Modifier.border(1.dp, colors.outlineVariant, shape),
+                ),
+        )
+        Row(Modifier.height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .weight(1f, fill = false)
+                    .fillMaxHeight()
+                    .widthIn(min = 48.dp)
+                    .clip(shape)
+                    .clickable(onClickLabel = "Show in Library", role = Role.Button, onClick = onOpen)
+                    .padding(start = 12.dp, end = Spacing.xs),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(name, style = MaterialTheme.typography.labelLarge, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-        } else if (!item.title.isNullOrBlank()) {
-            Text(item.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-        }
-        if (item.body.isNotBlank()) {
-            SelectionContainer {
-                Text(item.body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Box(
+                Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onRemove),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.Close, contentDescription = "Remove tag $name", tint = content, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
 @Composable
-private fun EditFields(
-    item: ItemEntity,
-    title: String,
-    body: String,
-    url: String,
-    onTitle: (String) -> Unit,
-    onBody: (String) -> Unit,
-    onUrl: (String) -> Unit,
-) {
+private fun Fact(label: String, value: String) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SelectionContainer { Text(value, style = MaterialTheme.typography.bodyMedium) }
+    }
+}
+
+@Composable
+private fun Editor(entry: Entry, onClose: () -> Unit, onSave: (String?, String, String?) -> Unit) {
+    val item = entry.item
+    var title by rememberSaveable { mutableStateOf(item.title.orEmpty()) }
+    var body by rememberSaveable { mutableStateOf(item.body) }
+    var url by rememberSaveable { mutableStateOf(item.url.orEmpty()) }
     val colors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
     )
-    Column(verticalArrangement = spacedBy(Spacing.m)) {
-        TextField(title, onTitle, label = { Text("Title (optional)") }, singleLine = true, colors = colors, modifier = Modifier.fillMaxWidth())
-        if (item.type == ItemType.LINK) {
-            TextField(url, onUrl, label = { Text("Link") }, singleLine = true, colors = colors, modifier = Modifier.fillMaxWidth())
+    BackHandler(onBack = onClose)
+    Column(Modifier.fillMaxSize().imePadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.s), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onClose) { Icon(Icons.Rounded.Close, contentDescription = "Discard changes") }
+            Text("Edit", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            TextButton(
+                onClick = { onSave(title, body, url.takeIf { item.type == ItemType.LINK }) },
+                enabled = item.type != ItemType.TEXT || body.isNotBlank(),
+            ) { Text("Save") }
         }
-        TextField(
-            body, onBody,
-            label = { Text(if (item.type == ItemType.TEXT) "Note" else "Note (optional)") },
-            minLines = 4, colors = colors, modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun ProcessingNote(item: ItemEntity, onRetry: () -> Unit) {
-    when (item.status) {
-        ProcessingStatus.PENDING -> Column(verticalArrangement = spacedBy(Spacing.s)) {
-            Text("Reading and sorting…", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            LinearProgressIndicator(Modifier.fillMaxWidth())
-        }
-        ProcessingStatus.FAILED -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (item.type == ItemType.LINK) "Couldn't load the page. You may be offline."
-                else "Couldn't fully read this.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = onRetry) { Text("Try again") }
-        }
-        ProcessingStatus.DONE -> Unit
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun CategorySection(
-    item: ItemEntity,
-    categories: List<CategoryEntity>,
-    suggestions: List<String>,
-    onPick: (String?) -> Unit,
-    onAuto: () -> Unit,
-    onMore: () -> Unit,
-) {
-    val current = categories.firstOrNull { it.id == item.categoryId }
-    val alternatives = suggestions.filter { it != item.categoryId }.mapNotNull { id -> categories.firstOrNull { it.id == id } }.take(3)
-    val pending = item.status == ProcessingStatus.PENDING
-
-    Column(verticalArrangement = spacedBy(Spacing.s)) {
-        RowDivider(Modifier)
-        Text("Category", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
-        Row(
-            Modifier.fillMaxWidth().clickable(onClick = onMore).heightIn(min = 48.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = spacedBy(10.dp),
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.s),
+            verticalArrangement = spacedBy(Spacing.m),
         ) {
-            CategoryDot(current?.let { parseHexColor(it.color) }, size = 10)
-            Text(
-                if (pending) "Sorting…" else categories.pathName(current?.id) ?: "Inbox",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
+            TextField(title, { title = it }, label = { Text("Title (optional)") }, singleLine = true, colors = colors, modifier = Modifier.fillMaxWidth())
+            if (item.type == ItemType.LINK) {
+                TextField(url, { url = it }, label = { Text("Link") }, singleLine = true, colors = colors, modifier = Modifier.fillMaxWidth())
+            }
+            TextField(
+                body, { body = it },
+                label = { Text(if (item.type == ItemType.TEXT) "Note" else "Note (optional)") },
+                minLines = 6, colors = colors, modifier = Modifier.fillMaxWidth(),
             )
-            TextButton(onClick = onMore) { Text("Change") }
-        }
-        val caption = when {
-            item.categoryLocked -> "You chose this category."
-            pending -> null
-            current == null -> "Couldn't tell where this belongs."
-            item.reasons.isNotBlank() -> "Matched: ${item.reasons}"
-            else -> null
-        }
-        if (caption != null) {
-            Text(caption, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (item.categoryLocked) {
-            TextButton(onClick = onAuto) { Text("Sort automatically again") }
-        }
-        if (alternatives.isNotEmpty()) {
-            Text("Could also be", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Spacing.s))
-            FlowRow(horizontalArrangement = spacedBy(Spacing.s)) {
-                alternatives.forEach { category ->
-                    AssistChip(
-                        onClick = { onPick(category.id) },
-                        label = { Text(category.name) },
-                        leadingIcon = { CategoryDot(parseHexColor(category.color)) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowDivider(modifier: Modifier) {
-    androidx.compose.material3.HorizontalDivider(modifier, thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ExtractedText(item: ItemEntity) {
-    val labels = item.labelList()
-    if (item.ocrText.isNullOrBlank() && labels.isEmpty()) return
-    Column(verticalArrangement = spacedBy(Spacing.s)) {
-        RowDivider(Modifier)
-        if (!item.ocrText.isNullOrBlank()) {
-            Text("Text in image", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
-            SelectionContainer {
-                Text(item.ocrText, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        if (labels.isNotEmpty()) {
-            Text("Looks like", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = Spacing.s))
-            Text(labels.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, fontStyle = FontStyle.Normal)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoryPickerSheet(
-    categories: List<CategoryEntity>,
-    currentId: String?,
-    onPick: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Text(
-            "Move to",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.s).semantics { heading() },
-        )
-        LazyColumn(Modifier.navigationBarsPadding()) {
-            item {
-                PickerRow("Inbox", null, selected = currentId == null) { onPick(null) }
-            }
-            items(categories.flattened(), key = { it.category.id }) { node ->
-                PickerRow(
-                    node.category.name, parseHexColor(node.category.color),
-                    selected = node.category.id == currentId, depth = node.depth,
-                ) { onPick(node.category.id) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PickerRow(name: String, color: Color?, selected: Boolean, depth: Int = 0, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .heightIn(min = 52.dp)
-            .padding(start = Spacing.gutter + (depth * 20).dp, end = Spacing.gutter),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = spacedBy(14.dp),
-    ) {
-        CategoryDot(color, size = 10)
-        Text(name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        if (selected) Icon(Icons.Rounded.Check, contentDescription = "Current", tint = MaterialTheme.colorScheme.primary)
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TagSection(item: ItemEntity, onChange: (List<String>) -> Unit, onOpenTag: (String) -> Unit) {
-    val tags = item.tagList()
-    var adding by rememberSaveable { mutableStateOf(false) }
-    Column(verticalArrangement = spacedBy(Spacing.s)) {
-        RowDivider(Modifier)
-        Text("Tags", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
-        FlowRow(horizontalArrangement = spacedBy(Spacing.s), verticalArrangement = spacedBy(Spacing.xs)) {
-            tags.forEach { tag ->
-                InputChip(
-                    selected = false,
-                    onClick = { onOpenTag(tag) },
-                    label = { Text("#$tag") },
-                    trailingIcon = {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Remove tag $tag",
-                            modifier = Modifier.size(18.dp).clickable { onChange(tags - tag) },
-                        )
-                    },
-                )
-            }
-            AssistChip(
-                onClick = { adding = true },
-                label = { Text(if (tags.isEmpty()) "Add a tag" else "Add") },
-                leadingIcon = { Icon(Icons.Rounded.Add, null, Modifier.size(18.dp)) },
-            )
-        }
-    }
-    if (adding) {
-        NameDialog("Add tag", "Add", "", onDismiss = { adding = false }) { raw ->
-            // Commas or spaces separate several tags typed at once.
-            val added = raw.split(',', ' ').map(::normalizeTag).filter { it.isNotEmpty() }
-            onChange((tags + added).distinct())
-            adding = false
         }
     }
 }

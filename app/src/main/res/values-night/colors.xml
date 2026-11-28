@@ -1,4 +1,4 @@
 <resources>
-    <color name="paper">#0D1413</color>
-    <color name="icon_bg">#1B6B66</color>
+    <color name="paper">#000000</color>
+    <color name="icon_bg">#111111</color>
 </resources>

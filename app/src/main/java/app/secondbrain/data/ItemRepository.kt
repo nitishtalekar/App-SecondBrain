@@ -1,127 +1,147 @@
 package app.secondbrain.data
 
-import android.net.Uri
-import app.secondbrain.data.db.CategoryCount
 import app.secondbrain.data.db.ItemDao
 import app.secondbrain.data.db.ItemEntity
-import app.secondbrain.data.db.ItemType
-import app.secondbrain.data.db.ProcessingStatus
+import app.secondbrain.ingest.Draft
+import app.secondbrain.ingest.ImageAnalyzer
 import app.secondbrain.ingest.ImageStore
-import app.secondbrain.ingest.ItemProcessor
+import app.secondbrain.ingest.LinkMetadataFetcher
 import app.secondbrain.ingest.LinkParser
-import app.secondbrain.ingest.ProcessingScheduler
-import app.secondbrain.ingest.classifyInput
-import app.secondbrain.ingest.withClassification
+import app.secondbrain.tagging.ItemAction
+import app.secondbrain.tagging.ItemType
+import app.secondbrain.tagging.TagEngine
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Capture is always: persist first, analyse later. [saveText] and [saveImage] return as soon as the row
- * exists; categorisation happens in the background and can fail without losing anything.
- */
 @Singleton
 class ItemRepository @Inject constructor(
     private val dao: ItemDao,
-    private val categories: CategoryRepository,
+    private val rules: TagRulesRepository,
     private val images: ImageStore,
-    private val scheduler: ProcessingScheduler,
-    private val processor: ItemProcessor,
+    private val analyzer: ImageAnalyzer,
+    private val links: LinkMetadataFetcher,
 ) {
-    fun observeAll(): Flow<List<ItemEntity>> = dao.observeAll()
-    fun observe(id: Long): Flow<ItemEntity?> = dao.observe(id)
-    fun observeCategory(categoryId: String): Flow<List<ItemEntity>> = dao.observeByCategory(categoryId)
-    fun observeInbox(): Flow<List<ItemEntity>> = dao.observeInbox()
-    fun observeCounts(): Flow<List<CategoryCount>> = dao.observeCounts()
+    /** Serialises read-modify-write so background work never overwrites a tap. */
+    private val writes = Mutex()
 
-    fun search(query: String): Flow<List<ItemEntity>> {
-        val terms = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (terms.isEmpty()) return emptyFlow()
-        val escaped = terms.first().replace("!", "!!").replace("%", "!%").replace("_", "!_")
-        return kotlinx.coroutines.flow.flow {
-            dao.search(escaped).collect { rows ->
-                emit(rows.filter { row -> terms.drop(1).all { row.searchText.contains(it) } })
+    val entries: Flow<List<Entry>> = dao.observeAll()
+        .map { rows -> rows.map { Entry(it) } }
+        .flowOn(Dispatchers.Default)
+
+    /** Saves the posts the user confirmed. */
+    suspend fun add(drafts: List<Draft>): List<Long> =
+        dao.insertAll(drafts.map { it.toItem(System.currentTimeMillis()) })
+
+    suspend fun setCompleted(id: Long, completed: Boolean) = change(id) {
+        it.copy(completedAt = if (completed) System.currentTimeMillis() else null)
+    }
+
+    suspend fun setAction(id: Long, action: ItemAction?) = change(id) {
+        if (it.action == action) it else it.copy(action = action, completedAt = null)
+    }
+
+    suspend fun addTags(id: Long, names: List<String>) = change(id) { it.withUserTags(names) }
+
+    suspend fun removeTag(id: Long, name: String) = change(id) { it.withoutTag(name) }
+
+    suspend fun edit(id: Long, title: String?, body: String, url: String?) {
+        val engine = rules.engine()
+        var refetch = false
+        change(id) { current ->
+            val cleanUrl = url?.trim()?.takeIf { it.isNotEmpty() }?.let(LinkParser::normalize)
+            refetch = current.type == ItemType.LINK && cleanUrl != null && cleanUrl != current.url
+            var next = current.copy(title = title?.trim()?.takeIf { it.isNotEmpty() }, body = body.trim())
+            if (refetch) {
+                // The old page's details no longer describe this link.
+                next = next.copy(
+                    url = cleanUrl, linkTitle = null, linkDescription = null, linkSiteName = null,
+                    linkKeywords = null, linkImageUrl = null, needsAnalysis = true,
+                )
+            }
+            next.retaggedForNewContent(engine.tag(next.tagInput()).tags)
+        }
+        if (refetch) analyse(id)
+    }
+
+    suspend fun delete(id: Long) = withContext(NonCancellable) {
+        writes.withLock {
+            val current = dao.get(id) ?: return@withLock
+            dao.delete(id)
+            current.imagePath?.let { if (dao.countImageUses(it) == 0) images.delete(it) }
+        }
+    }
+
+    /** Reads a page or photo that couldn't be read before, and adds whatever tags it yields. */
+    suspend fun analyse(id: Long) {
+        val engine = rules.engine()
+        val start = dao.get(id) ?: return
+        try {
+            if (start.type == ItemType.LINK && start.url != null) {
+                val meta = links.fetch(start.url)
+                change(id) { current ->
+                    if (current.url != start.url) return@change current
+                    val next = current.copy(
+                        linkTitle = meta.title, linkDescription = meta.description, linkSiteName = meta.siteName,
+                        linkKeywords = meta.keywords, linkImageUrl = meta.imageUrl, needsAnalysis = false,
+                    )
+                    next.withAutoTags(engine.tag(next.tagInput()).tags)
+                }
+            } else if (start.type == ItemType.IMAGE && start.imagePath != null) {
+                val analysis = analyzer.analyze(start.imagePath)
+                change(id) { current ->
+                    val next = current.copy(
+                        ocrText = analysis.text ?: current.ocrText,
+                        imageLabels = analysis.labels.joinToString(",").ifEmpty { current.imageLabels },
+                        needsAnalysis = analysis.failed,
+                    )
+                    next.withAutoTags(engine.tag(next.tagInput()).tags)
+                }
+            } else {
+                change(id) { it.copy(needsAnalysis = false) }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Still offline or unreadable. It stays flagged and is retried on a later launch.
+        }
+    }
+
+    /** Startup housekeeping: tag anything from the folder era, then retry unread pages and photos. */
+    suspend fun catchUp() = withContext(Dispatchers.Default) {
+        val engine = rules.engine()
+        dao.getTaggedBefore(TagEngine.VERSION).forEach { id ->
+            change(id) { it.migrated(engine, System.currentTimeMillis()) }
+        }
+        dao.getNeedingAnalysis().forEach { analyse(it.id) }
+    }
+
+    /** Applies current rules to everything, only ever adding tags. Returns how many items gained some. */
+    suspend fun retagAll(): Int = withContext(Dispatchers.Default) {
+        val engine = rules.engine()
+        var changed = 0
+        dao.getAll().forEach { item ->
+            change(item.id) { current ->
+                current.withAutoTags(engine.tag(current.tagInput()).tags)
+                    .also { if (it.tagsJson != current.tagsJson) changed++ }
             }
         }
+        changed
     }
 
-    suspend fun saveText(raw: String, attachment: Uri? = null): Long? {
-        val parsed = LinkParser.parse(raw)
-        if (attachment == null && parsed.url == null && parsed.note.isBlank()) return null
-        val now = System.currentTimeMillis()
-        val imagePath = attachment?.let { images.import(it) }
-        val type = when {
-            imagePath != null -> ItemType.IMAGE
-            parsed.url != null -> ItemType.LINK
-            else -> ItemType.TEXT
-        }
-        val item = ItemEntity(
-            type = type,
-            body = parsed.note,
-            url = parsed.url.takeIf { type == ItemType.LINK },
-            imagePath = imagePath,
-            status = ProcessingStatus.PENDING,
-            createdAt = now,
-            updatedAt = now,
-        )
-        val saved = item.copy(searchText = item.buildSearchText())
-        val id = dao.insert(saved)
-        scheduler.enqueue(id)
-        return id
-    }
-
-    suspend fun updateContent(id: Long, title: String?, body: String, url: String?) {
-        val current = dao.get(id) ?: return
-        val cleanUrl = url?.trim()?.takeIf { it.isNotEmpty() }?.let(LinkParser::normalize)
-        val changedUrl = current.type == ItemType.LINK && cleanUrl != current.url
-        var next = current.copy(
-            title = title?.trim()?.takeIf { it.isNotEmpty() },
-            body = body.trim(),
-            url = if (current.type == ItemType.LINK) cleanUrl ?: current.url else current.url,
-            updatedAt = System.currentTimeMillis(),
-        )
-        next = next.copy(searchText = next.buildSearchText())
-        if (changedUrl) {
-            dao.update(next.copy(status = ProcessingStatus.PENDING))
-            scheduler.enqueue(id)
-        } else {
-            dao.update(runCatching { next.withClassification(categories.classifier().classify(next.classifyInput())) }.getOrDefault(next))
+    private suspend fun change(id: Long, transform: (ItemEntity) -> ItemEntity) {
+        writes.withLock {
+            val current = dao.get(id) ?: return
+            val next = transform(current)
+            if (next != current) dao.update(next.copy(updatedAt = System.currentTimeMillis()))
         }
     }
-
-    /** [categoryId] null means "put it in the Inbox". Either way the choice is locked in. */
-    suspend fun setCategory(id: Long, categoryId: String?) {
-        val current = dao.get(id) ?: return
-        dao.update(current.copy(categoryId = categoryId, categoryLocked = true, updatedAt = System.currentTimeMillis()))
-    }
-
-    suspend fun setTags(id: Long, tags: List<String>) {
-        val current = dao.get(id) ?: return
-        val clean = tags.map(::normalizeTag).filter { it.isNotEmpty() }.distinct()
-        val next = current.copy(tags = clean.joinToString(","), updatedAt = System.currentTimeMillis())
-        dao.update(next.copy(searchText = next.buildSearchText()))
-    }
-
-    suspend fun unlockCategory(id: Long) {
-        val current = dao.get(id) ?: return
-        val unlocked = current.copy(categoryLocked = false)
-        dao.update(runCatching { unlocked.withClassification(categories.classifier().classify(unlocked.classifyInput())) }.getOrDefault(unlocked))
-    }
-
-    suspend fun retry(id: Long) {
-        val current = dao.get(id) ?: return
-        dao.update(current.copy(status = ProcessingStatus.PENDING))
-        scheduler.enqueue(id)
-    }
-
-    suspend fun delete(id: Long) {
-        val current = dao.get(id) ?: return
-        dao.delete(id)
-        images.delete(current.imagePath)
-    }
-
-    suspend fun reclassifyAutoSorted() = processor.reclassifyAutoSorted()
-
-    suspend fun resumeUnprocessed() = scheduler.resumeUnprocessed()
 }

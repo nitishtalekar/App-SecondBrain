@@ -9,7 +9,6 @@ activityCompose = "1.9.3"
 lifecycle = "2.8.7"
 navigation = "2.8.5"
 room = "2.6.1"
-work = "2.10.0"
 datastore = "1.1.1"
 coil = "2.7.0"
 serialization = "1.7.3"
@@ -40,13 +39,10 @@ compose-icons-extended = { module = "androidx.compose.material:material-icons-ex
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltAndroidx" }
-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltAndroidx" }
-hilt-work-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltAndroidx" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }

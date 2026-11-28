@@ -4,28 +4,10 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import app.secondbrain.tagging.ItemAction
+import app.secondbrain.tagging.ItemType
 
-enum class ItemType { TEXT, LINK, IMAGE }
-
-enum class ProcessingStatus { PENDING, DONE, FAILED }
-
-@Entity(tableName = "categories")
-data class CategoryEntity(
-    @PrimaryKey val id: String,
-    val name: String,
-    val color: String,
-    val sortOrder: Int,
-    /** Parent folder id; null for top-level folders. */
-    val parentId: String? = null,
-    val minScore: Double? = null,
-    /** JSON-encoded List<Rule>. Kept opaque so rule shapes can evolve without migrations. */
-    val rulesJson: String = "[]",
-)
-
-@Entity(
-    tableName = "items",
-    indices = [Index("categoryId"), Index("createdAt")],
-)
+@Entity(tableName = "items", indices = [Index("createdAt")])
 data class ItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val type: ItemType,
@@ -34,28 +16,30 @@ data class ItemEntity(
     val url: String? = null,
     val imagePath: String? = null,
     val ocrText: String? = null,
-    /** Comma separated ML Kit labels. */
+    /** Comma separated image labels. */
     val imageLabels: String? = null,
     val linkTitle: String? = null,
     val linkDescription: String? = null,
     val linkSiteName: String? = null,
     val linkKeywords: String? = null,
     val linkImageUrl: String? = null,
-    /** Null means Inbox (or still processing, see [status]). */
-    val categoryId: String? = null,
-    /** True once the user chose a category by hand; automatic sorting never touches it again. */
-    val categoryLocked: Boolean = false,
-    val confidence: Double = 0.0,
-    /** JSON-encoded List<Suggestion>, best first. */
-    val suggestionsJson: String = "[]",
-    val reasons: String = "",
-    /** Comma separated, lowercase, user-added tags. */
-    @ColumnInfo(defaultValue = "") val tags: String = "",
-    val status: ProcessingStatus = ProcessingStatus.PENDING,
+    /** JSON-encoded List<Tag>. */
+    @ColumnInfo(defaultValue = "[]") val tagsJson: String = "[]",
+    /** Comma separated tag names the user removed; automatic tagging never brings them back. */
+    @ColumnInfo(defaultValue = "") val removedTags: String = "",
+    /** Newline separated folder and tag names from the folder-based app, waiting to become tags. */
+    @ColumnInfo(defaultValue = "") val legacyTags: String = "",
+    /** Set when this is something to read, watch, buy or do. */
+    val action: ItemAction? = null,
+    val completedAt: Long? = null,
+    /** Shared by posts that came from one capture, such as a photo and the text read from it. */
+    val groupId: String? = null,
+    /** True while a page or photo still has to be read. */
+    @ColumnInfo(defaultValue = "0") val needsAnalysis: Boolean = false,
+    /** True when [body] was read out of a photo. */
+    @ColumnInfo(defaultValue = "0") val scanned: Boolean = false,
+    /** The tagging version applied to this row; 0 means never tagged. */
+    @ColumnInfo(defaultValue = "0") val taggerVersion: Int = 0,
     val createdAt: Long,
     val updatedAt: Long,
-    /** Lowercased concatenation of every searchable field. */
-    @ColumnInfo(defaultValue = "") val searchText: String = "",
 )
-
-data class CategoryCount(val categoryId: String?, val count: Int)
