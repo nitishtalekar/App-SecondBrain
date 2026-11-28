@@ -11,6 +11,9 @@ import kotlinx.serialization.json.Json
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** How the Library lays out items: a staggered grid of cards, or one row each. */
+enum class LibraryLayout { GRID, LIST }
+
 private val json = Json { ignoreUnknownKeys = true }
 private val tagsSerializer = ListSerializer(Tag.serializer())
 

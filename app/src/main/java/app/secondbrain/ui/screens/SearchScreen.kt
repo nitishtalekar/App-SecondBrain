@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,18 +19,23 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,22 +57,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.secondbrain.data.LibraryLayout
 import app.secondbrain.search.SearchParams
 import app.secondbrain.search.StatusFilter
 import app.secondbrain.tagging.ItemType
 import app.secondbrain.tagging.tagLabel
+import app.secondbrain.ui.SearchUiState
 import app.secondbrain.ui.SearchViewModel
 import app.secondbrain.ui.components.EmptyState
 import app.secondbrain.ui.components.EntryRow
+import app.secondbrain.ui.components.FeedCard
 import app.secondbrain.ui.components.RowDivider
 import app.secondbrain.ui.components.ScreenHeader
 import app.secondbrain.ui.components.SectionLabel
+import app.secondbrain.ui.components.SettingsButton
 import app.secondbrain.ui.components.icon
 import app.secondbrain.ui.theme.Spacing
 
@@ -75,8 +88,7 @@ private fun ItemType.plural() = when (this) {
     ItemType.IMAGE -> "Photos"
 }
 
-/** Words, tags, state and type, all at once. Results appear once there is something to look for. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Everything saved, as a mixed feed or a list, narrowed by words, tags, state and type. */
 @Composable
 fun SearchScreen(
     viewModel: SearchViewModel,
@@ -90,19 +102,28 @@ fun SearchScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val params = state.params
     val list = rememberLazyListState()
+    val grid = rememberLazyStaggeredGridState()
     // A changed search starts from the top.
     var shownFor by rememberSaveable { mutableStateOf(params.toString()) }
     LaunchedEffect(params) {
         if (shownFor != params.toString()) {
             shownFor = params.toString()
             list.scrollToItem(0)
+            grid.scrollToItem(0)
         }
     }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = Spacing.contentMaxWidth).fillMaxSize()) {
             ScreenHeader("Library") {
-                IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
+                val asGrid = state.layout == LibraryLayout.GRID
+                IconButton(onClick = { viewModel.setLayout(if (asGrid) LibraryLayout.LIST else LibraryLayout.GRID) }) {
+                    Icon(
+                        if (asGrid) Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.Dashboard,
+                        contentDescription = if (asGrid) "Show as list" else "Show as grid",
+                    )
+                }
+                SettingsButton(onOpenSettings)
             }
             TextField(
                 value = query,
@@ -126,65 +147,40 @@ fun SearchScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
             )
+            val open: (Long) -> Unit = { id -> focusManager.clearFocus(); onOpen(id) }
             when {
                 !state.loaded -> Unit
                 state.total == 0 -> EmptyState("Your library is empty", "Everything you save to your brain appears here.")
-                else -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(bottom = Spacing.xl)) {
-                    if (params.tags.isNotEmpty()) item(key = "selected") {
-                        FlowRow(Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.s), horizontalArrangement = spacedBy(Spacing.s)) {
-                            params.tags.forEach { tag ->
-                                InputChip(
-                                    selected = true,
-                                    onClick = { viewModel.toggleTag(tag) },
-                                    label = { Text(tagLabel(tag)) },
-                                    trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = "Remove filter", Modifier.size(18.dp)) },
-                                )
-                            }
-                        }
+                state.layout == LibraryLayout.GRID -> LazyVerticalStaggeredGrid(
+                    // Two columns on a phone, more as the screen widens.
+                    columns = StaggeredGridCells.Adaptive(148.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    state = grid,
+                    contentPadding = PaddingValues(start = Spacing.gutter, end = Spacing.gutter, bottom = Spacing.xl),
+                    horizontalArrangement = spacedBy(Spacing.s),
+                    verticalItemSpacing = Spacing.s,
+                ) {
+                    item(key = "header", span = StaggeredGridItemSpan.FullLine) {
+                        // The header brings its own gutters, so let it out of the grid's.
+                        SearchHeader(state, viewModel, Modifier.bleed(Spacing.gutter))
                     }
-                    if (state.suggestions.isNotEmpty()) item(key = "suggestions") {
-                        Column(Modifier.padding(horizontal = Spacing.gutter).padding(top = 12.dp)) {
-                            SectionLabel("Suggested tags")
-                            FlowRow(horizontalArrangement = spacedBy(Spacing.s)) {
-                                state.suggestions.forEach { tag ->
-                                    SuggestionChip(
-                                        onClick = { viewModel.pickSuggestion(tag.name) },
-                                        label = { Text(tagLabel(tag.name)) },
-                                        icon = { Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp)) },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    item(key = "filters") {
-                        FilterGrid(params, viewModel::toggleStatus, viewModel::toggleType)
-                    }
-                    if (!params.isEmpty) item(key = "count") {
-                        Row(
-                            Modifier.fillMaxWidth().padding(start = Spacing.gutter, end = Spacing.s, top = Spacing.m),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val count = state.results.size
-                            SectionLabel(
-                                if (count == 1) "1 match" else "$count matches",
-                                Modifier.weight(1f).padding(vertical = 12.dp),
-                            )
-                            TextButton(onClick = viewModel::clear) { Text("Clear all") }
-                        }
-                    }
-                    if (!params.isEmpty && state.results.isEmpty()) item(key = "none") {
-                        Text(
-                            "No matches. Try fewer words or clear a filter.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.l),
+                    items(state.results, key = { it.entry.id }) { hit ->
+                        FeedCard(
+                            hit.entry,
+                            onClick = { open(hit.entry.id) },
+                            onComplete = { onComplete(hit.entry.id, it) },
+                            modifier = Modifier.animateItem(),
+                            snippet = hit.snippet,
                         )
                     }
+                }
+                else -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, contentPadding = PaddingValues(bottom = Spacing.xl)) {
+                    item(key = "header") { SearchHeader(state, viewModel) }
                     itemsIndexed(state.results, key = { _, hit -> hit.entry.id }) { index, hit ->
                         Column(Modifier.animateItem()) {
                             EntryRow(
                                 hit.entry,
-                                onClick = { focusManager.clearFocus(); onOpen(hit.entry.id) },
+                                onClick = { open(hit.entry.id) },
                                 onComplete = { onComplete(hit.entry.id, it) },
                                 snippet = hit.snippet,
                             )
@@ -192,6 +188,74 @@ fun SearchScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Widens a child past its parent's side padding by [by] on each side. */
+private fun Modifier.bleed(by: Dp) = layout { measurable, constraints ->
+    val extra = by.roundToPx() * 2
+    val width = constraints.maxWidth + extra
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+}
+
+/** Everything above the items: chosen and suggested tags, the filter tiles and the match count. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SearchHeader(state: SearchUiState, viewModel: SearchViewModel, modifier: Modifier = Modifier) {
+    val params = state.params
+    Column(modifier.fillMaxWidth()) {
+        if (params.tags.isNotEmpty()) {
+            FlowRow(Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.s), horizontalArrangement = spacedBy(Spacing.s)) {
+                params.tags.forEach { tag ->
+                    InputChip(
+                        selected = true,
+                        onClick = { viewModel.toggleTag(tag) },
+                        label = { Text(tagLabel(tag)) },
+                        trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = "Remove filter", Modifier.size(18.dp)) },
+                    )
+                }
+            }
+        }
+        if (state.suggestions.isNotEmpty()) {
+            Column(Modifier.padding(horizontal = Spacing.gutter).padding(top = 12.dp)) {
+                SectionLabel("Suggested tags")
+                FlowRow(horizontalArrangement = spacedBy(Spacing.s)) {
+                    state.suggestions.forEach { tag ->
+                        SuggestionChip(
+                            onClick = { viewModel.pickSuggestion(tag.name) },
+                            label = { Text(tagLabel(tag.name)) },
+                            icon = { Icon(Icons.Rounded.Add, contentDescription = null, Modifier.size(18.dp)) },
+                        )
+                    }
+                }
+            }
+        }
+        FilterGrid(params, viewModel::toggleStatus, viewModel::toggleType)
+        if (params.isEmpty) {
+            // Space between the tiles and the first item.
+            Spacer(Modifier.height(Spacing.m))
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(start = Spacing.gutter, end = Spacing.s, top = Spacing.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val count = state.results.size
+                SectionLabel(
+                    if (count == 1) "1 match" else "$count matches",
+                    Modifier.weight(1f).padding(vertical = 12.dp),
+                )
+                TextButton(onClick = viewModel::clear) { Text("Clear all") }
+            }
+            if (state.results.isEmpty()) {
+                Text(
+                    "No matches. Try fewer words or clear a filter.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.l),
+                )
             }
         }
     }

@@ -19,6 +19,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     private val accentKey = stringPreferencesKey("accent")
 
+    private val layoutKey = stringPreferencesKey("library_layout")
+
+    val libraryLayout: Flow<LibraryLayout> = context.dataStore.data.map { prefs ->
+        LibraryLayout.entries.firstOrNull { it.name == prefs[layoutKey] } ?: LibraryLayout.GRID
+    }
+
+    suspend fun setLibraryLayout(layout: LibraryLayout) {
+        context.dataStore.edit { it[layoutKey] = layout.name }
+    }
+
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
         prefs[themeKey]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM
     }

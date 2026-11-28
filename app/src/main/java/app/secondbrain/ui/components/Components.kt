@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,6 +72,12 @@ fun ScreenHeader(title: String, modifier: Modifier = Modifier, subtitle: String?
         }
         trailing()
     }
+}
+
+/** The way into Settings, in the top corner of every tab. */
+@Composable
+fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(onClick = onClick, modifier = modifier) { Icon(Icons.Rounded.Settings, contentDescription = "Settings") }
 }
 
 @Composable
@@ -138,10 +145,8 @@ fun EntryRow(
     snippet: String? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    val tagLine = entry.tags
-        .filter { it.kind != TagKind.TIME && it.kind != TagKind.FORMAT }
-        .take(3).joinToString(" · ") { tagLabel(it.name) }
-    val status = entry.item.action?.let { if (entry.done) it.completed else it.pending }
+    val tagLine = entry.tagLine()
+    val status = entry.statusLabel()
 
     Row(
         modifier
@@ -188,17 +193,30 @@ fun EntryRow(
                 )
             }
         }
-        val action = entry.item.action
-        if (action != null) {
-            IconButton(onClick = { onComplete(!entry.done) }) {
-                Icon(
-                    if (entry.done) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                    contentDescription = if (entry.done) "${action.completed}. Tap to undo" else action.verb,
-                    tint = if (entry.done) colors.primary else colors.tertiary,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
-        }
+        CompletionButton(entry, onComplete)
+    }
+}
+
+/** The item's leading tags, leaving out the ones about time and format. */
+fun Entry.tagLine(count: Int = 3): String = tags
+    .filter { it.kind != TagKind.TIME && it.kind != TagKind.FORMAT }
+    .take(count).joinToString(" · ") { tagLabel(it.name) }
+
+/** "To read", "Bought" and so on; null for things that wait for nothing. */
+fun Entry.statusLabel(): String? = item.action?.let { if (done) it.completed else it.pending }
+
+/** The one-tap circle that completes an item. Draws nothing if there is nothing to complete. */
+@Composable
+fun CompletionButton(entry: Entry, onComplete: (Boolean) -> Unit) {
+    val action = entry.item.action ?: return
+    val colors = MaterialTheme.colorScheme
+    IconButton(onClick = { onComplete(!entry.done) }) {
+        Icon(
+            if (entry.done) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+            contentDescription = if (entry.done) "${action.completed}. Tap to undo" else action.verb,
+            tint = if (entry.done) colors.primary else colors.tertiary,
+            modifier = Modifier.size(28.dp),
+        )
     }
 }
 

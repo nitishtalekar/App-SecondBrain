@@ -304,7 +304,8 @@ Navigation is a bottom bar on compact widths and a navigation rail from 600dp wi
 Tab screens open with a header at least 72dp tall. The primary action sits at the bottom of the screen, within thumb reach. Lists are flat rows with 12dp vertical padding, separated by inset hairlines; chips wrap or scroll horizontally.
 
 - **Add:** a centred column: "What's on your mind?", a short writing box, **Upload photo** and **Take photo** side by side, then **Add to brain**. Review is a stack of post cards above one **Save** button.
-- **Library:** search field, suggested tags while typing, a four-column grid of filter tiles with icons, and results only once something is searched or filtered.
+- **Library:** search field, suggested tags while typing, a four-column grid of filter tiles with icons, then every item as a staggered grid of cards (two columns on a phone) or as rows, switched in the header. The order is shuffled once per launch; typed words rank by match.
+- **Settings:** Appearance, Tags and Privacy as cards that open in place, closed to begin with. Every tab has the Settings button at the top right.
 - **Brain:** the globe fills the screen above a rail of cluster chips. A selected cluster opens a panel, below the globe (52% of height) when taller than wide, or beside it (360dp) when wider than tall.
 - **Detail:** back, Advanced, the content, and at most one button (complete or undo).
 
@@ -347,6 +348,8 @@ Calm and plain: stock Material 3 components themed through colour, type and shap
 - **Composer:** a large surface-container panel holding a borderless text field and the attached photo.
 - **Draft card:** surface-container-low, 16dp radius, 16dp padding, 12dp between blocks.
 - **Cluster panel:** surface-container-low with 28dp leading corners.
+- **Feed card:** surface-container-low, 16dp radius. The picture sits on top in its own shape (between 0.65 and 1.9 wide to tall), then a title, up to eight lines of a note, and the site or tags. A waiting or completed item ends in its status and completion circle.
+- **Settings section:** a surface-container-low card with a title, a one-line summary and a chevron.
 
 ### Inputs / Fields
 - **Composer field:** no fill and no indicator; the panel is the field.

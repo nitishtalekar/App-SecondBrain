@@ -30,7 +30,7 @@ A second brain with no AI in the generative sense: items are tagged on-device by
 
 - Things arrive by typing, pasting, the camera, the gallery, or Android's share sheet.
 - **Add**: compose, review suggested tags, confirm.
-- **Library**: search by words, tags, state and type; matching tags are suggested while typing. Browsing everything happens in Brain.
+- **Library**: search by words, tags, state and type; matching tags are suggested while typing. With nothing searched, everything shows as a shuffled feed of staggered cards, or as a list.
 - **Brain**: a navigable globe of clusters.
 - Opening an item shows the item; tags, details, editing and deletion are under Advanced.
 

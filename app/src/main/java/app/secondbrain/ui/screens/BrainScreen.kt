@@ -55,6 +55,7 @@ import app.secondbrain.ui.BrainViewModel
 import app.secondbrain.ui.components.EntryRow
 import app.secondbrain.ui.components.RowDivider
 import app.secondbrain.ui.components.ScreenHeader
+import app.secondbrain.ui.components.SettingsButton
 import app.secondbrain.ui.theme.Spacing
 import app.secondbrain.ui.theme.clusterColor
 
@@ -65,6 +66,7 @@ fun BrainScreen(
     onComplete: (Long, Boolean) -> Unit,
     onSearchTag: (String) -> Unit,
     onAdd: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val loaded by viewModel.map.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
@@ -100,10 +102,14 @@ fun BrainScreen(
             )
         }
 
+        val header: @Composable () -> Unit = {
+            ScreenHeader("Brain", subtitle = subtitle) { SettingsButton(onOpenSettings) }
+        }
+
         if (sideBySide) {
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
-                    ScreenHeader("Brain", subtitle = subtitle)
+                    header()
                     sphere(Modifier.weight(1f).fillMaxWidth())
                     if (cluster == null) ClusterRail(map.clusters, viewModel::select)
                 }
@@ -112,7 +118,7 @@ fun BrainScreen(
         } else {
             val panelHeight = maxHeight * 0.52f
             Column(Modifier.fillMaxSize()) {
-                ScreenHeader("Brain", subtitle = subtitle)
+                header()
                 sphere(Modifier.weight(1f).fillMaxWidth())
                 if (cluster == null) ClusterRail(map.clusters, viewModel::select)
                 else panel(cluster, Modifier.fillMaxWidth().height(panelHeight))

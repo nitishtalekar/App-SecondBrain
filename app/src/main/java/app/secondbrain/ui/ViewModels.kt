@@ -8,10 +8,12 @@ import app.secondbrain.brain.BrainMap
 import app.secondbrain.brain.Clusterer
 import app.secondbrain.data.Entry
 import app.secondbrain.data.ItemRepository
+import app.secondbrain.data.LibraryLayout
 import app.secondbrain.data.SettingsRepository
 import app.secondbrain.data.TagRulesRepository
 import app.secondbrain.data.Accent
 import app.secondbrain.data.ThemeMode
+import app.secondbrain.search.FeedOrder
 import app.secondbrain.search.SearchDoc
 import app.secondbrain.search.SearchEngine
 import app.secondbrain.search.SearchHit
@@ -35,8 +37,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.random.Random
 
 private const val KEEP_ALIVE = 5_000L
+private const val FEED_SEED = "feed_seed"
 
 data class AppUiState(
     val loaded: Boolean = false,
@@ -106,11 +110,19 @@ data class SearchUiState(
     /** Tags that complete the word being typed. */
     val suggestions: List<TagCount> = emptyList(),
     val total: Int = 0,
+    val layout: LibraryLayout = LibraryLayout.GRID,
 )
 
 /** Activity-scoped, so a search survives switching tabs. */
 @HiltViewModel
-class SearchViewModel @Inject constructor(items: ItemRepository) : ViewModel() {
+class SearchViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
+    items: ItemRepository,
+    private val settings: SettingsRepository,
+) : ViewModel() {
+
+    /** Picked once per launch, so the feed is mixed differently each time but holds still while in use. */
+    private val seed: Long = savedStateHandle[FEED_SEED] ?: Random.nextLong().also { savedStateHandle[FEED_SEED] = it }
 
     private val params = MutableStateFlow(SearchParams())
 
@@ -119,12 +131,20 @@ class SearchViewModel @Inject constructor(items: ItemRepository) : ViewModel() {
 
     private val docs = items.entries.map { entries -> entries.map(::SearchDoc) }
 
-    val uiState: StateFlow<SearchUiState> = combine(docs, params) { all, current ->
-        // The library lists nothing until asked; browsing everything is the Brain's job.
-        val hits = if (current.isEmpty) emptyList() else SearchEngine.search(all, current)
-        SearchUiState(true, current, hits, SearchEngine.suggestTags(all, current), all.size)
+    private val found = combine(docs, params) { all, current ->
+        val hits = SearchEngine.search(all, current)
+        // Typed words rank by how well they match; otherwise the feed stays mixed, filtered or not.
+        val ordered = if (current.query.isBlank()) FeedOrder.shuffle(hits, seed) { it.entry.id } else hits
+        SearchUiState(true, current, ordered, SearchEngine.suggestTags(all, current), all.size)
     }.flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), SearchUiState())
+
+    val uiState: StateFlow<SearchUiState> = combine(found, settings.libraryLayout) { state, layout ->
+        state.copy(layout = layout)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(KEEP_ALIVE), SearchUiState())
+
+    fun setLayout(layout: LibraryLayout) {
+        viewModelScope.launch { settings.setLibraryLayout(layout) }
+    }
 
     fun setQuery(query: String) = params.update { it.copy(query = query) }
     fun toggleStatus(status: StatusFilter) = params.update { it.copy(status = status.takeIf { s -> s != it.status }) }

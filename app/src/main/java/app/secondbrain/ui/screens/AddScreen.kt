@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.spacedBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +83,7 @@ import app.secondbrain.ui.AddUiState
 import app.secondbrain.ui.AddViewModel
 import app.secondbrain.ui.components.AddTagDialog
 import app.secondbrain.ui.components.SectionLabel
+import app.secondbrain.ui.components.SettingsButton
 import app.secondbrain.ui.components.icon
 import app.secondbrain.ui.theme.Spacing
 import coil.compose.AsyncImage
@@ -89,11 +91,23 @@ import java.io.File
 
 /** The whole tab is for putting things in: write or attach, check the tags, confirm. */
 @Composable
-fun AddScreen(viewModel: AddViewModel) {
+fun AddScreen(viewModel: AddViewModel, onOpenSettings: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize().imePadding(), contentAlignment = Alignment.TopCenter) {
         Box(Modifier.widthIn(max = Spacing.contentMaxWidth).fillMaxSize()) {
-            if (state.reviewing) Review(state, viewModel) else Composer(state, viewModel)
+            if (state.reviewing) {
+                Review(state, viewModel, onOpenSettings)
+            } else {
+                // A bar of its own keeps the button clear of the scrolling composer.
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.s),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) { SettingsButton(onOpenSettings) }
+                    Box(Modifier.weight(1f)) { Composer(state, viewModel) }
+                }
+            }
         }
     }
 }
@@ -221,7 +235,7 @@ private fun AttachOption(icon: ImageVector, label: String, enabled: Boolean, mod
 }
 
 @Composable
-private fun Review(state: AddUiState, viewModel: AddViewModel) {
+private fun Review(state: AddUiState, viewModel: AddViewModel, onOpenSettings: () -> Unit) {
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     BackHandler { viewModel.backToCompose() }
 
@@ -235,6 +249,7 @@ private fun Review(state: AddUiState, viewModel: AddViewModel) {
             }
             Text("Review", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
             TextButton(onClick = { confirmDiscard = true }) { Text("Discard") }
+            SettingsButton(onOpenSettings)
         }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(),

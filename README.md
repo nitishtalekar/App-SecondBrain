@@ -23,12 +23,12 @@ Requirements: JDK 17, Android SDK 35 (build-tools 34/35), a device or emulator o
 
 ## Using it
 
-Three tabs.
+Three tabs, each with **Settings** at the top right (Appearance, Tags and Privacy, each opening on tap).
 
 | Tab | What it does |
 |---|---|
 | **Add** | Write, paste a link, or attach a photo, then **Add to brain**. Every post is shown with its suggested tags: switch off any you don't want, add your own, correct text, remove a whole post, then **Save**. A photo containing real text becomes **two posts**, the photo and its text. Sharing into the app from elsewhere lands here too. |
-| **Library** | Words, `#tags`, sites, months, `today`, `yesterday`, `"exact phrases"`, `-exclusions`, with one-letter typo tolerance. Filter by To do / To read / To buy / To watch / Done and by Notes / Links / Photos. Matching tags are suggested as you type; tap one to select it. Nothing is listed until you search or filter; browse everything in Brain. |
+| **Library** | Everything you saved, as a feed of staggered cards mixed afresh each launch, or as a list (button at the top). Search and filters narrow it. Words, `#tags`, sites, months, `today`, `yesterday`, `"exact phrases"`, `-exclusions`, with one-letter typo tolerance. Filter by To do / To read / To buy / To watch / Done and by Notes / Links / Photos. Matching tags are suggested as you type; tap one to select it. Typed words put the best match first. |
 | **Brain** | A globe of clusters. Drag to turn, pinch to zoom, tap a cluster to travel to it and list its things, tap a dot to open one. The chips underneath do the same without the globe. |
 
 Opening something shows just the thing. **Advanced** (top right) holds its tags and why each was added, its details, the post it arrived with, editing and deletion.
@@ -57,7 +57,7 @@ Text such as "buy oat milk", "read Piranesi" or "call mom", and links to shops, 
 ## Customising tags
 
 Rules are data. Defaults live in [`app/src/main/assets/tags.json`](app/src/main/assets/tags.json).
-In the app, **Library → Settings → Tag rules** lists every tag. Open one to change the words, sites and photo labels that earn it, try it on some text, switch it off or reset it; **New tag** adds your own. For patterns and weights, use that screen's menu to **Export rules**, edit the file, then **Import rules**. Imports replace definitions with the same name and add new ones, then add any newly matching tags to saved items.
+In the app, **Settings → Tags → Tag rules** lists every tag. Open one to change the words, sites and photo labels that earn it, try it on some text, switch it off or reset it; **New tag** adds your own. For patterns and weights, use that screen's menu to **Export rules**, edit the file, then **Import rules**. Imports replace definitions with the same name and add new ones, then add any newly matching tags to saved items.
 
 ```jsonc
 {

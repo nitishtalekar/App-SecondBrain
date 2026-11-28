@@ -158,19 +158,20 @@ fun AppRoot(viewModel: AppViewModel, addViewModel: AddViewModel) {
                 popEnterTransition = { fadeIn(tween(220)) },
                 popExitTransition = { fadeOut(tween(120)) },
             ) {
+                val openSettings: () -> Unit = { navController.navigate(SettingsRoute) { launchSingleTop = true } }
                 val open: (Long) -> Unit = { id -> navController.navigate(DetailRoute(id)) { launchSingleTop = true } }
                 val back: () -> Unit = { navController.popBackStack() }
                 val searchTag: (String) -> Unit = { tag ->
                     searchViewModel.showTag(tag)
                     switchTo(SearchRoute)
                 }
-                composable<AddRoute> { AddScreen(addViewModel) }
+                composable<AddRoute> { AddScreen(addViewModel, onOpenSettings = openSettings) }
                 composable<SearchRoute> {
                     SearchScreen(
                         viewModel = searchViewModel,
                         onOpen = open,
                         onComplete = viewModel::setCompleted,
-                        onOpenSettings = { navController.navigate(SettingsRoute) { launchSingleTop = true } },
+                        onOpenSettings = openSettings,
                     )
                 }
                 composable<BrainRoute> {
@@ -180,6 +181,7 @@ fun AppRoot(viewModel: AppViewModel, addViewModel: AddViewModel) {
                         onComplete = viewModel::setCompleted,
                         onSearchTag = searchTag,
                         onAdd = { switchTo(AddRoute) },
+                        onOpenSettings = openSettings,
                     )
                 }
                 composable<DetailRoute> {
